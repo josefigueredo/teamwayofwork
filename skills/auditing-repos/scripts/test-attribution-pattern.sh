@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Tests the detection pattern in check-attribution.sh in BOTH directions.
+#
+# It feeds fixtures through the pattern instead of planting a real attribution
+# string in a commit — the rule in references/no-attribution.md forbids that,
+# and the user's own hook blocks it. A detector still has to be proven to fire.
+set -uo pipefail
+
+VENDOR='(claude|anthropic|copilot|chatgpt|gpt-[0-9]|openai|gemini|llm|\bai\b)'
+TRAILER="co[- ]authored[- ]by:[^\\n]*${VENDOR}"
+PHRASE="(generated|created|written|authored|produced|assisted)[ -]?(with|by)[^\\n]{0,24}${VENDOR}"
+BADGE='(🤖|:robot:)'
+CLAIM="(this|the) (pr|commit|change|issue|report)[^\\n]{0,40}${VENDOR}[^\\n]{0,20}(wrote|generated|authored)"
+PAT="${TRAILER}|${PHRASE}|${BADGE}|${CLAIM}"
+
+pass=0; fail=0
+must_flag()   { if printf '%s' "$1" | rg -qiP "$PAT"; then echo "  ✓ caught: $2"; pass=$((pass+1));
+                else echo "  ✗ MISSED: $2 — [$1]"; fail=$((fail+1)); fi; }
+must_ignore() { if printf '%s' "$1" | rg -qiP "$PAT"; then echo "  ✗ FALSE POSITIVE: $2 — [$1]"; fail=$((fail+1));
+                else echo "  ✓ ignored: $2"; pass=$((pass+1)); fi; }
+
+echo "── must be caught ──"
+must_flag "Co-Authored-By: $(printf 'Cla''ude') Opus 5 <noreply@anthropic.com>" "co-author trailer"
+must_flag "co-authored-by: $(printf 'Cop''ilot')" "trailer, lowercase"
+must_flag "Co Authored By: $(printf 'Gem''ini')" "trailer, spaces not hyphens"
+must_flag "🤖 Generated with $(printf 'Cla''ude') Code" "footer with badge"
+must_flag "Generated with $(printf 'Cla''ude') Code" "footer without badge"
+must_flag "created by $(printf 'Chat''GPT')" "created by"
+must_flag "This change was authored by an $(printf 'A''I') assistant" "authored by"
+must_flag "written with $(printf 'Ope''nAI') models" "written with"
+must_flag "Assisted by $(printf 'Cla''ude')" "assisted by"
+must_flag "release notes :robot: here" "robot shortcode"
+
+echo
+echo "── must NOT be flagged (legitimate content) ──"
+must_ignore "Reported by Copilot review on #36." "naming a third-party reviewer"
+must_ignore "Responding to the Copilot review comments." "discussing a review"
+must_ignore "Verified by building the image and running the container." "describing method"
+must_ignore "Two of the findings were wrong; corrected in place." "ordinary prose"
+must_ignore "feat: add an AI-powered search endpoint" "AI as subject matter"
+must_ignore "The generated requirements.txt comes from uv.lock." "generated, no vendor"
+must_ignore "docs: explain how the report was produced" "produced, no vendor"
+must_ignore "Copilot flagged the pip uninstall as non-enforcing." "reviewer findings as content"
+
+echo
+echo "passed=$pass failed=$fail"
+exit $(( fail > 0 ))

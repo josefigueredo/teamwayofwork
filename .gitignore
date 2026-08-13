@@ -1,0 +1,15 @@
+# Herramientas locales de agentes y editores. Un `git add -A` se las lleva
+# al PR de otro si no están acá.
+.serena/
+.claude/settings.local.json
+.aider*
+.cursor/
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Informes de auditoría generados localmente: son borradores hasta que se
+# aprueban y se publican como issues.
+AUDIT-REPORT.md
