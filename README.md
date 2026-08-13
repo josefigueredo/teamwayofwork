@@ -8,13 +8,18 @@ Un procedimiento que vive sólo en una wiki se cumple cuando alguien se acuerda.
 
 Todo lo que hay en este repo —skills, procedimientos, convenciones— tiene una fase declarada. La fase responde una sola pregunta: **¿cuánto puedo apoyarme en esto hoy?**
 
-| Fase | Qué significa | Qué esperar |
+| Fase | Qué significa | ¿Me apoyo en esto? |
 | --- | --- | --- |
-| 🧪 **Incubation** | Se está explorando. Puede cambiar de forma o morir. | Usalo y reportá; no construyas encima. Cambios sin aviso. |
-| 🚧 **Alpha/Beta** | Se usa de verdad, todavía se ajusta con el uso. | Podés apoyarte, avisando que puede moverse. Cambios anunciados. |
-| ✅ **Standardized** | Es **la** forma en que el equipo hace esto. | Es la opción por defecto. Apartarse se justifica, no al revés. |
+| 🧪 **Incubation** | Se está explorando. Puede cambiar de forma o morir. | **No.** Probalo y reportá; no construyas encima. Cambios sin aviso. |
+| 🚧 **Beta** | Se usa de verdad, todavía se ajusta con el uso. | **Sí, con red.** Apoyate y avisá si rompe. Los cambios se anuncian. |
+| ✅ **Standardized** | Es **la** forma en que el equipo hace esto. | **Sí, por defecto.** Apartarse se justifica, no al revés. |
+| ⚰️ **Deprecated** | Ya no es como trabajamos. Reemplazado o abandonado. | **No.** No empieces nada nuevo acá. Debe decir por qué y qué usar en su lugar. |
+
+Cada fase responde una sola pregunta, y por eso son cuatro y no más: cuánto puedo apoyarme en esto hoy. Una fase intermedia con nombre ambiguo obliga a preguntar en el canal del equipo, que es exactamente el trabajo que la etiqueta tendría que ahorrar.
 
 Una fase no se gana por antigüedad sino por uso: algo pasa a `Standardized` cuando el equipo lo aplicó varias veces, en contextos distintos, y dejó de encontrarle sorpresas.
+
+`Deprecated` existe para que lo viejo pueda dejar de recomendarse sin desaparecer de golpe. Sin ese estado, lo que se abandona se queda marcado `Standardized` para siempre —y alguien lo va a seguir usando porque eso es lo que dice— o se borra sin dejar rastro de por qué.
 
 ## Skills
 
