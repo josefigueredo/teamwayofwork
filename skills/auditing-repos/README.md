@@ -1,5 +1,7 @@
 # auditing-repos
 
+> 🧪 **Fase: Incubation.** Se usó en una auditoría completa y ya sobrevivió a dos rondas de review, pero es nueva y cambia rápido. Usala y reportá lo que encuentres; todavía no construyas encima. Ver el [ciclo de vida](../../README.md#ciclo-de-vida).
+
 Audita un repositorio local, escribe los hallazgos en un informe local, espera tu aprobación, y recién entonces los publica como issues de GitHub con los pull requests que los cierran. Opcionalmente los vincula a un ticket de Jira.
 
 ## El principio
