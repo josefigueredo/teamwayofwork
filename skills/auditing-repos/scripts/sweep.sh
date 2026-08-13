@@ -52,9 +52,12 @@ staged_junk=$(git diff --name-only "$BASE"...HEAD 2>/dev/null \
 # absolute: see references/no-attribution.md.
 if [ -x "$(dirname "$0")/check-attribution.sh" ]; then
   if "$(dirname "$0")/check-attribution.sh" "$BASE" >/tmp/.attr.$$ 2>&1; then
-    pass "no LLM attribution (all surfaces)"
+    pass "no LLM attribution (commits, diff, branch, GitHub, Jira)"
   else
-    flag "LLM attribution found:"; rg '^✗' /tmp/.attr.$$ | sed 's/^/    /'
+    # Not "attribution found": the sub-check also fails when a surface could
+    # not be read. Naming the stronger conclusion here would undo the fix made
+    # inside check-attribution.sh for exactly this reason.
+    flag "attribution check did not pass:"; rg '^✗' /tmp/.attr.$$ | sed 's/^/    /'
   fi
   rm -f /tmp/.attr.$$
 fi

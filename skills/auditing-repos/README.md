@@ -21,9 +21,39 @@ Publicar es difícil de deshacer: un issue notifica gente, un PR consume tiempo 
 
 **Cuándo NO:** para revisar un diff puntual usá `/code-review`; para auditorías de UI/accesibilidad, `audit`; para debuggear una falla específica, `superpowers:systematic-debugging`.
 
+## Instalación
+
+Una sola vez. Se enlaza, no se copia: así seguís una única fuente de verdad en vez de una copia que se desactualiza en silencio.
+
+```bash
+git clone git@github.com:josefigueredo/teamwayofwork.git
+cd teamwayofwork
+
+ln -s "$PWD/skills/auditing-repos" ~/.agents/skills/auditing-repos
+```
+
+Eso alcanza para **Codex, Copilot CLI y Gemini CLI**, que leen de `~/.agents/skills/`.
+
+Para **Claude Code** hace falta además:
+
+```bash
+ln -s ../../.agents/skills/auditing-repos ~/.claude/skills/auditing-repos
+```
+
+Verificá que quedó:
+
+```bash
+ls -l ~/.agents/skills/auditing-repos     # debe apuntar a tu clon
+./skills/auditing-repos/scripts/test-attribution-pattern.sh   # 22 passed
+```
+
 ## Cómo se invoca
 
-No hace falta invocarla a mano. Se activa sola cuando pedís una auditoría o review de un repositorio. Si querés forzarla:
+Una vez instalada, no hace falta invocarla a mano. Se activa sola cuando pedís una auditoría o review de un repositorio, parado en el repo que querés auditar:
+
+> _"auditá este repo"_ · _"revisá este código"_ · _"chequeá seguridad y calidad acá"_
+
+Si querés forzarla:
 
 ```
 /auditing-repos
@@ -69,21 +99,28 @@ Detalle completo con tabla de racionalizaciones en `references/no-attribution.md
 
 ## Scripts
 
-Todos son ejecutables y se pueden correr sueltos.
+Todos son ejecutables y se pueden correr sueltos, sin agente de por medio. Corrélos **parado en el repo que estás auditando**, no en este.
+
+Conviene ponerles un alias, porque la ruta es larga y los vas a usar seguido:
 
 ```bash
+export SKILL=~/.agents/skills/auditing-repos      # o la ruta de tu clon
+
 # Antes de empezar: git, permisos, Jira, tooling disponible
-~/.claude/skills/auditing-repos/scripts/preflight.sh
+$SKILL/scripts/preflight.sh
 
 # Antes de cada push: 40 chars, tooling local, atribución, SHAs, refs mutables
-~/.claude/skills/auditing-repos/scripts/sweep.sh [rama-base]
+$SKILL/scripts/sweep.sh [rama-base]
 
-# Solo atribución, sobre las 7 superficies
-~/.claude/skills/auditing-repos/scripts/check-attribution.sh [rama-base]
+# Solo atribución: commits, diff, rama, GitHub y Jira
+$SKILL/scripts/check-attribution.sh [rama-base]
 
 # Prueba que el detector de atribución dispara y no da falsos positivos
-~/.claude/skills/auditing-repos/scripts/test-attribution-pattern.sh
+$SKILL/scripts/test-attribution-pattern.sh
 ```
+
+Si no instalaste los symlinks, apuntá `SKILL` directo a tu clon:
+`export SKILL=~/ruta/a/teamwayofwork/skills/auditing-repos`
 
 ### Qué atrapa el sweep
 
@@ -91,7 +128,7 @@ Todos son ejecutables y se pueden correr sueltos.
 |---|---|
 | Identificadores de 40 caracteres | El detector Lob de TruffleHog marca cualquier token alfanumérico de 40 chars como secreto *verificado* y rompe el CI. Nombres de test reales caen. |
 | Tooling local en el diff | Un `git add -A` se lleva `.serena/`, `.idea/`, settings locales al PR de otro. |
-| Atribución a LLM | Siete superficies, incluidos PRs, issues y comentarios de Jira ya publicados. |
+| Atribución a LLM | Cinco chequeos: metadatos del commit, líneas agregadas del diff, nombre de la rama, PRs/issues/comentarios de GitHub, y comentarios de Jira. |
 | SHAs de actions | No solo que exista: que **corresponda al tag que dice el comentario**. Un SHA real al lado de un `# v0.36.0` que es de v0.32.0 es un comentario que miente. |
 | Refs mutables | Informativo. `@main` en un `uses:` con `secrets: inherit` es el agujero más grande que suele tener un repo. |
 
