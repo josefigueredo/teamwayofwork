@@ -23,7 +23,10 @@ if ! git rev-parse --verify --quiet "$BASE" >/dev/null 2>&1; then
 fi
 
 # Assembled at runtime so this file does not itself read as an attribution.
-VENDOR='(claude|anthropic|copilot|chatgpt|gpt-[0-9]|openai|gemini|llm|\bai\b)'
+# Living list — extend it when a new vendor appears. `codex` matters in
+# particular: ~/.agents/skills/ exists because Codex and Copilot CLI read from
+# there, so the detector must know the names of the runtimes it ships to.
+VENDOR='(claude|anthropic|copilot|codex|chatgpt|gpt-[0-9]|openai|gemini|llama|mistral|grok|deepseek|qwen|llm|\bai\b)'
 TRAILER="co[- ]authored[- ]by:[^\\n]*${VENDOR}"
 PHRASE="(generated|created|written|authored|produced|assisted)[ -]?(with|by)[^\\n]{0,24}${VENDOR}"
 BADGE='(🤖|:robot:)'
@@ -61,33 +64,73 @@ if command -v gh >/dev/null 2>&1 && gh repo view >/dev/null 2>&1; then
   [ -n "$is" ] && { flag "in issues:"; echo "$is" | sed 's/^/    /'; found=1; }
 
   me=$(gh api user --jq '.login' 2>/dev/null)
-  for n in $(gh pr list --state all --limit 15 --json number --jq '.[].number' 2>/dev/null); do
-    c=$(gh api "repos/{owner}/{repo}/issues/$n/comments" \
-        --jq ".[] | select(.user.login==\"$me\") | .body" 2>/dev/null | scan)
-    [ -n "$c" ] && { flag "in a comment on #$n:"; echo "$c" | sed 's/^/    /'; found=1; }
+  # Comments live on the same endpoint for issues and PRs, but the numbers come
+  # from two different lists. Iterating only PRs left every comment on a
+  # standalone issue unchecked — including the correction blocks that
+  # publishing.md tells you to add.
+  nums=$( { gh pr list --state all --limit 20 --json number --jq '.[].number' 2>/dev/null
+            gh issue list --state all --limit 40 --json number --jq '.[].number' 2>/dev/null
+          } | sort -un )
+  ncom=0
+  for n in $nums; do
+    c=$(gh api "repos/{owner}/{repo}/issues/$n/comments" --paginate \
+        --jq ".[] | select(.user.login==\"$me\") | .body" 2>/dev/null)
+    [ -n "$c" ] && ncom=$((ncom+1))
+    hit=$(printf '%s' "$c" | scan)
+    [ -n "$hit" ] && { flag "in a comment on #$n:"; echo "$hit" | sed 's/^/    /'; found=1; }
   done
-  [ "$found" -eq 0 ] && pass "published PRs, issues and comments clean"
+  [ "$found" -eq 0 ] && pass "GitHub clean ($(echo "$nums" | grep -c . ) items, $ncom with own comments)"
 else
   echo "· skipped published artifacts (no gh, or not a GitHub repo)"
 fi
 
 # 5. Jira comments authored by this account on referenced tickets.
+# Three outcomes that must never look alike: checked and clean, nothing to
+# check, and could not check. The previous version printed the same ✓ for all
+# three — including with a dead token, while naming the ticket it had not read.
 if [ -n "${IC_JIRA_BASE_URL:-}" ] && [ -n "${IC_JIRA_API_TOKEN:-}" ] && [ -n "${IC_JIRA_USER_EMAIL:-}" ]; then
   keys=$(git log "$BASE"..HEAD --format='%B' 2>/dev/null | rg -o '[A-Z][A-Z0-9]+-[0-9]+' | sort -u)
   [ -z "$keys" ] && keys=$(gh pr list --state all --limit 30 --json title --jq '.[].title' 2>/dev/null | rg -o '[A-Z][A-Z0-9]+-[0-9]+' | sort -u)
-  jfound=0
-  for k in $keys; do
-    body=$(curl -s -u "$IC_JIRA_USER_EMAIL:$IC_JIRA_API_TOKEN" \
-      "$IC_JIRA_BASE_URL/rest/api/2/issue/$k/comment?maxResults=50" 2>/dev/null \
-      | python3 -c "import sys,json;d=json.load(sys.stdin);print('\n'.join(c.get('body','') for c in d.get('comments',[])))" 2>/dev/null)
-    hit=$(printf '%s' "$body" | scan)
-    [ -n "$hit" ] && { flag "in Jira $k:"; echo "$hit" | sed 's/^/    /'; jfound=1; }
-  done
-  [ "$jfound" -eq 0 ] && pass "Jira comments clean${keys:+ ($(echo $keys | tr '\n' ' '))}"
+  [ -z "$keys" ] && keys=$(git rev-parse --abbrev-ref HEAD | rg -o '[A-Z][A-Z0-9]+-[0-9]+' | sort -u)
+
+  if [ -z "$keys" ]; then
+    echo "· no Jira keys found in commits, PR titles or branch name — nothing checked"
+  else
+    jcode=$(curl -s -o /dev/null -w '%{http_code}' -u "$IC_JIRA_USER_EMAIL:$IC_JIRA_API_TOKEN" \
+            "$IC_JIRA_BASE_URL/rest/api/3/myself" 2>/dev/null || echo 000)
+    if [ "$jcode" != "200" ]; then
+      # Not a pass. Tickets are referenced and cannot be read: unverifiable is
+      # a failure, not a clean bill of health.
+      flag "Jira auth failed (HTTP $jcode) — cannot check $(echo $keys | tr '\n' ' ')"
+      echo "    an unauthenticated Jira returns 404 for tickets that do exist"
+    else
+      jfound=0; jseen=0
+      for k in $keys; do
+        raw=$(curl -s -u "$IC_JIRA_USER_EMAIL:$IC_JIRA_API_TOKEN" \
+              "$IC_JIRA_BASE_URL/rest/api/2/issue/$k/comment?maxResults=100" 2>/dev/null)
+        n=$(printf '%s' "$raw" | python3 -c "import sys,json
+try:
+    d=json.load(sys.stdin); print(len(d.get('comments',[])) if 'comments' in d else -1)
+except Exception: print(-1)" 2>/dev/null)
+        if [ "${n:--1}" -lt 0 ]; then
+          flag "Jira $k unreadable — response was not a comment list"; jfound=1; continue
+        fi
+        jseen=$((jseen+n))
+        hit=$(printf '%s' "$raw" | python3 -c "import sys,json
+d=json.load(sys.stdin); print('\n'.join(c.get('body','') for c in d.get('comments',[])))" 2>/dev/null | scan)
+        [ -n "$hit" ] && { flag "in Jira $k:"; echo "$hit" | sed 's/^/    /'; jfound=1; }
+      done
+      [ "$jfound" -eq 0 ] && pass "Jira clean ($jseen comments across $(echo $keys | tr '\n' ' '))"
+    fi
+  fi
 else
   echo "· skipped Jira (env vars not set)"
 fi
 
 echo
-[ "$fail" -eq 0 ] && echo "no attribution found" || echo "ATTRIBUTION FOUND — remove before publishing"
+# Deliberately not "ATTRIBUTION FOUND": a failure here can also mean a surface
+# could not be read. Claiming the stronger finding would be the same overstatement
+# this skill exists to prevent.
+[ "$fail" -eq 0 ] && echo "no attribution found on any reachable surface" \
+                  || echo "PROBLEMS ABOVE — attribution found, or a surface could not be checked"
 exit "$fail"

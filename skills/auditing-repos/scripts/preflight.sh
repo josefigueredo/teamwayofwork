@@ -62,6 +62,20 @@ else
 fi
 
 echo
+echo "── audit report safety ──"
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  if git check-ignore -q AUDIT-REPORT.md 2>/dev/null; then
+    say "AUDIT-REPORT.md" "ignored — safe to write in the repo root"
+  else
+    say "AUDIT-REPORT.md" "NOT IGNORED in this repo"
+    say "  →" "the report holds detailed security findings and is a draft until"
+    say "  " "approved. A git add -A would publish it to history before the gate."
+    say "  fix" "echo 'AUDIT-REPORT.md' >> .gitignore   (or write to the scratchpad)"
+    warn=$((warn+1))
+  fi
+fi
+
+echo
 echo "── verification tooling ──"
 for t in docker uv rg fd; do
   have "$t" && say "$t" "yes" || { say "$t" "no — some claims cannot be verified by running them"; warn=$((warn+1)); }

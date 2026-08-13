@@ -71,7 +71,15 @@ The short version:
 
 ## Phase 4 — Local report (approval gate)
 
-Write to `AUDIT-REPORT.md` in the repo root (gitignored) or the scratchpad. One entry per finding:
+Write to `AUDIT-REPORT.md` in the repo root, or to the scratchpad.
+
+**Confirm it cannot be committed before writing it** — the report holds detailed
+security findings and is a draft until approved, so a `git add -A` would publish
+it to history ahead of the gate. `preflight.sh` checks this; if the repo does not
+ignore it, add the line or use the scratchpad. Do not assume it is ignored
+because this skill's own repo ignores it.
+
+One entry per finding:
 
 ```markdown
 ### F-07 · Application code is writable by the runtime user
