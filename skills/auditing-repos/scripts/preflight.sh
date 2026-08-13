@@ -42,15 +42,23 @@ fi
 
 echo
 echo "── jira (optional) ──"
+# Only three are needed to authenticate. PROJECT_KEY is optional and used to
+# filter discovered ticket keys, so requiring it here would have blocked Jira
+# for a value nothing depends on.
 missing_jira=()
-for v in IC_JIRA_BASE_URL IC_JIRA_USER_EMAIL IC_JIRA_API_TOKEN IC_JIRA_PROJECT_KEY; do
+for v in IC_JIRA_BASE_URL IC_JIRA_USER_EMAIL IC_JIRA_API_TOKEN; do
   [ -z "${!v:-}" ] && missing_jira+=("$v")
 done
 if [ ${#missing_jira[@]} -eq 0 ]; then
   code=$(curl -s -o /dev/null -w '%{http_code}' -u "$IC_JIRA_USER_EMAIL:$IC_JIRA_API_TOKEN" \
          "$IC_JIRA_BASE_URL/rest/api/3/myself" 2>/dev/null || echo 000)
   if [ "$code" = "200" ]; then
-    say "jira auth" "yes (project $IC_JIRA_PROJECT_KEY)"
+    say "jira auth" "yes"
+    if [ -n "${IC_JIRA_PROJECT_KEY:-}" ]; then
+      say "  project filter" "$IC_JIRA_PROJECT_KEY (solo se consultan tickets de este proyecto)"
+    else
+      say "  project filter" "sin definir — se consultará cualquier key con formato ABC-123"
+    fi
   else
     say "jira auth" "HTTP $code — token expired or revoked, NOT a permissions problem"
     say "  note" "an unauthenticated Jira returns 404 for real tickets. Never conclude"

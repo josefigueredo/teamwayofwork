@@ -73,11 +73,21 @@ Base branches get retargeted on rename; **head branches close the PR**. For PRs 
 
 ## Jira
 
-Env vars, never hardcoded:
+Env vars, never hardcoded. Three are required; the fourth narrows the search:
 
 ```
-IC_JIRA_BASE_URL  IC_JIRA_USER_EMAIL  IC_JIRA_API_TOKEN  IC_JIRA_PROJECT_KEY
+IC_JIRA_BASE_URL      required
+IC_JIRA_USER_EMAIL    required
+IC_JIRA_API_TOKEN     required
+IC_JIRA_PROJECT_KEY   optional — restricts lookups to this project. Without it,
+                      any ABC-123-shaped string in a commit gets looked up,
+                      including other teams' keys and the occasional false match.
 ```
+
+`IC_JIRA_USER_NAME`, `IC_JIRA_EPIC_CHILD_MODE` and `IC_JIRA_FIELD_EPIC_LINK` may
+exist in the environment (the `ic` skill sets them) and are deliberately unused:
+the last two configure *creating* epic-linked tickets, and this skill only
+comments on tickets that already exist.
 
 Read a token from the clipboard (`pbpaste`) if the env var is stale. **Never write it to a file, never echo it** — print length and prefix only.
 

@@ -147,12 +147,33 @@ Si la rama base no resuelve, el sweep **aborta con exit 2** en vez de reportar l
 
 Jira necesita, **siempre desde el entorno, nunca hardcodeadas**:
 
+| Variable | ¿Obligatoria? | Para qué |
+| --- | --- | --- |
+| `IC_JIRA_BASE_URL` | **Sí** | `https://tu-org.atlassian.net` |
+| `IC_JIRA_USER_EMAIL` | **Sí** | Usuario para autenticar |
+| `IC_JIRA_API_TOKEN` | **Sí** | Token de <https://id.atlassian.com/manage-profile/security/api-tokens> |
+| `IC_JIRA_PROJECT_KEY` | No | Filtra qué tickets se consultan. Sin ella se consulta cualquier key con forma `ABC-123`, incluidas las de otros equipos que aparezcan en un commit |
+
 ```bash
 export IC_JIRA_BASE_URL=https://tu-org.atlassian.net
 export IC_JIRA_USER_EMAIL=vos@tu-org.com
 export IC_JIRA_API_TOKEN=...
-export IC_JIRA_PROJECT_KEY=PLATE
+export IC_JIRA_PROJECT_KEY=PLATE      # opcional, recomendado
 ```
+
+Con las tres obligatorias alcanza. Si te falta alguna, Jira se saltea y **el resto de la skill funciona igual**.
+
+### Las que esta skill NO usa
+
+Si venís de la skill `ic` vas a tener más variables `IC_JIRA_*` definidas. Esta skill las ignora, y no es un olvido:
+
+| Variable | Por qué no se usa |
+| --- | --- |
+| `IC_JIRA_USER_NAME` | La autenticación va por email; el nombre es decorativo |
+| `IC_JIRA_EPIC_CHILD_MODE` | Sirven para **crear** tickets colgados de un épic. Esta skill sólo **comenta** en tickets que ya existen: los hallazgos van a issues de GitHub, no a Jira |
+| `IC_JIRA_FIELD_EPIC_LINK` | ídem |
+
+Si en algún momento la skill tuviera que abrir tickets de Jira por hallazgo, esas dos son las que harían falta.
 
 El preflight distingue **token vencido** (HTTP 401) de **sin permisos**, porque una Jira sin autenticar devuelve 404 para tickets que sí existen. Nunca concluyas "el ticket no existe" mientras `/myself` da 401.
 

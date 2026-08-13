@@ -93,6 +93,13 @@ if [ -n "${IC_JIRA_BASE_URL:-}" ] && [ -n "${IC_JIRA_API_TOKEN:-}" ] && [ -n "${
   [ -z "$keys" ] && keys=$(gh pr list --state all --limit 30 --json title --jq '.[].title' 2>/dev/null | rg -o '[A-Z][A-Z0-9]+-[0-9]+' | sort -u)
   [ -z "$keys" ] && keys=$(git rev-parse --abbrev-ref HEAD | rg -o '[A-Z][A-Z0-9]+-[0-9]+' | sort -u)
 
+  # The regex matches any ABC-123 shape, including references to other teams'
+  # projects and the occasional false positive. When PROJECT_KEY is set, only
+  # look up tickets that belong to it.
+  if [ -n "${IC_JIRA_PROJECT_KEY:-}" ] && [ -n "$keys" ]; then
+    keys=$(printf '%s\n' $keys | rg "^${IC_JIRA_PROJECT_KEY}-[0-9]+$" || true)
+  fi
+
   if [ -z "$keys" ]; then
     echo "· no Jira keys found in commits, PR titles or branch name — nothing checked"
   else
