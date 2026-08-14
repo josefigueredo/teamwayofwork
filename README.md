@@ -40,6 +40,14 @@ ln -s ../../.agents/skills/auditing-repos ~/.claude/skills/auditing-repos
 
 `~/.agents/skills/` lo leen Claude Code, Codex, Copilot CLI y Gemini CLI.
 
+## Comandos
+
+| Comando | Fase | Para qué |
+| --- | --- | --- |
+| [`query-from-cli`](commands/query-from-cli/) | 🚧 Beta | Preguntarle algo rápido a un modelo de IA desde la terminal (`q "..."`), sin abrir una sesión interactiva |
+
+A diferencia de las skills, un comando es un script suelto: no se enlaza a `~/.agents/skills/`, se agrega al `PATH` o se aliasea. Cada uno tiene su `README.md` con el detalle de instalación.
+
 ## Principios que atraviesan todo lo que hay acá
 
 **Lo que no se ejecuta, no se afirma.** Un hallazgo sin verificar es una suposición con cita. Vale para una auditoría, para un comentario en un PR y para una línea de documentación.
