@@ -1,0 +1,8 @@
+# Python test and coverage artifacts generated while validating this skill.
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+__pycache__/
+*.py[cod]

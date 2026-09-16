@@ -26,8 +26,19 @@ Una fase no se gana por antigüedad sino por uso: algo pasa a `Standardized` cua
 | Skill | Fase | Para qué |
 | --- | --- | --- |
 | [`auditing-repos`](skills/auditing-repos/) | 🧪 Incubation | Auditar un repositorio y convertir los hallazgos en issues, PRs y tickets de Jira, con una compuerta de aprobación antes de publicar nada |
+| [`local-board-skill`](skills/local-board-skill/) | 🚧 Beta | Mantener un board de trabajo local trazado contra evidencia de Git y sincronizarlo con Jira sólo con aprobación explícita |
 
 Cada skill tiene su `README.md` en castellano. El `SKILL.md` y los `references/` están en inglés a propósito: los consume el modelo.
+
+### Tests automatizados
+
+Las skills que incluyen scripts Python se validan en GitHub Actions por grupos independientes. Actualmente corre el grupo [`local-board-skill`](skills/local-board-skill/) con su suite bajo `skills/local-board-skill/tests/` y exige al menos 90% de cobertura sobre sus scripts:
+
+```bash
+python3 -m unittest discover -s skills/local-board-skill/tests -p 'test*.py' -v
+```
+
+Para sumar otra skill Python al workflow, agregá una entrada con sus directorios `source_dir` y `test_dir` en [`.github/workflows/python-skill-tests.yml`](.github/workflows/python-skill-tests.yml).
 
 ### Instalación
 
@@ -36,9 +47,12 @@ Enlazá la skill donde tu runtime la busca, en vez de copiarla — así seguís 
 ```bash
 ln -s "$PWD/skills/auditing-repos" ~/.agents/skills/auditing-repos
 ln -s ../../.agents/skills/auditing-repos ~/.claude/skills/auditing-repos
+
+ln -s "$PWD/skills/local-board-skill" ~/.agents/skills/local-board-skill
+ln -s ../../.agents/skills/local-board-skill ~/.claude/skills/local-board-skill
 ```
 
-`~/.agents/skills/` lo leen Claude Code, Codex, Copilot CLI y Gemini CLI.
+`~/.agents/skills/` lo leen Codex, Copilot CLI, GitHub Copilot en VS Code, Cursor y Gemini CLI. Para Claude Code además hace falta el enlace en `~/.claude/skills/`.
 
 ## Comandos
 

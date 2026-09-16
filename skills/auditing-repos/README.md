@@ -32,7 +32,7 @@ cd teamwayofwork
 ln -s "$PWD/skills/auditing-repos" ~/.agents/skills/auditing-repos
 ```
 
-Eso alcanza para **Codex, Copilot CLI y Gemini CLI**, que leen de `~/.agents/skills/`.
+Eso alcanza para **Codex, Copilot CLI, GitHub Copilot en VS Code, Cursor y Gemini CLI**, que leen de `~/.agents/skills/`.
 
 Para **Claude Code** hace falta además:
 

@@ -7,6 +7,12 @@
 .idea/
 .vscode/
 .history/
+__pycache__/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
 
 # macOS
 .DS_Store
