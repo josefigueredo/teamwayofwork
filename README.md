@@ -27,6 +27,7 @@ Una fase no se gana por antigüedad sino por uso: algo pasa a `Standardized` cua
 | --- | --- | --- |
 | [`auditing-repos`](skills/auditing-repos/) | 🧪 Incubation | Auditar un repositorio y convertir los hallazgos en issues, PRs y tickets de Jira, con una compuerta de aprobación antes de publicar nada |
 | [`local-board-skill`](skills/local-board-skill/) | 🚧 Beta | Mantener un board de trabajo local trazado contra evidencia de Git y sincronizarlo con Jira sólo con aprobación explícita |
+| [`install-unified-ci`](skills/install-unified-ci/) | 🧪 Incubation | Evaluar un repositorio, auditar compatibilidad con Unified CI, generar `.github/workflows/ci.yml` canónico y podar workflows obsoletos |
 
 Cada skill tiene su `README.md` en castellano. El `SKILL.md` y los `references/` están en inglés a propósito: los consume el modelo.
 
