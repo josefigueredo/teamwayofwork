@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -138,9 +139,19 @@ def decide_source(local: datetime, remote: datetime, prefer: str | None) -> str:
     return "local" if local > remote else "noop"
 
 
+def parse_jira_timestamp(value: str) -> datetime:
+    """Parse a Jira ISO-8601 timestamp, tolerating a numeric offset with no colon
+    (e.g. '-0300' instead of '-03:00'), which Python's fromisoformat rejects on <3.11."""
+    normalized = value.replace("Z", "+00:00")
+    match = re.match(r"^(.*[+-])(\d{2})(\d{2})$", normalized)
+    if match:
+        normalized = f"{match.group(1)}{match.group(2)}:{match.group(3)}"
+    return datetime.fromisoformat(normalized)
+
+
 def remote_values(entity: LocalEntity, remote: dict[str, Any], settings: SyncSettings) -> tuple[datetime, dict[str, Any]]:
     fields = remote["fields"]
-    updated = datetime.fromisoformat(fields["updated"].replace("Z", "+00:00")).astimezone(timezone.utc)
+    updated = parse_jira_timestamp(fields["updated"]).astimezone(timezone.utc)
     account_id = ((fields.get("assignee") or {}) or {}).get("accountId") or ""
     return updated, {
         "summary": strip_local_id(fields.get("summary") or "", entity.id),
