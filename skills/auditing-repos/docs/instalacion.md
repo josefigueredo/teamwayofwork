@@ -46,6 +46,19 @@ Qué pasó:
   hace falta además el segundo enlace, en `~/.claude/skills/`.
 - Abrí una sesión nueva del agente para que la skill aparezca.
 
+**Alternativa: instalar solo la skill con `npx skills`.** Si preferís no enlazar nada a mano, pedile que use el CLI
+[`skills`](https://github.com/vercel-labs/skills) desde tu clon (necesitás Node):
+
+> Instalá solo la skill auditing-repos con npx skills desde mi clon de teamwayofwork, sin telemetría
+
+![Maqueta de Cursor: el agente corre npx skills add y la skill queda en ~/.agents/skills con un enlace desde Claude Code](img/cursor-instalar-npx.png)
+
+*Maqueta; el bloque `Ran` es la salida real, corrida con un `HOME` falso. El comando es
+`DISABLE_TELEMETRY=1 npx skills@1.7.2 add . --skill auditing-repos -a cursor -a claude-code -g -y`.* Instala una **copia**, así que
+**no se actualiza con `git pull`** (hay que repetir el comando) y, si ya la habías enlazada a mano, te reemplaza el enlace por esa
+copia. Detalles y límites en la [instalación detallada](instalacion-detallada.md#instalar-solo-la-skill-con-npx-skills-add), y el
+formato que cumple, en la [especificación de Agent Skills](https://agentskills.io/specification).
+
 ## 2. GitHub y Jira
 
 Esto lo hacés vos, en una terminal.
@@ -110,7 +123,7 @@ no resuelve, el sweep **se niega a decir «limpio»** y sale con código 2.
 
 ## 6. Mantenerla al día
 
-Como se enlazó, alcanza con traer lo nuevo del clon:
+Si la enlazaste, alcanza con traer lo nuevo del clon (si usaste `npx skills`, repetí además el comando de instalación, porque instaló una copia):
 
 > Actualizá mi clon de teamwayofwork con lo último de main
 
@@ -132,6 +145,8 @@ Como se enlazó, alcanza con traer lo nuevo del clon:
 | Imagen | Origen |
 |---|---|
 | `cursor-instalar.png` | Maqueta; el `head` es la salida real a través de enlaces creados en un `HOME` falso |
+| `cursor-instalar-npx.png` | Maqueta; el bloque `Ran` es la salida **real** de `npx skills@1.7.2 add` en un `HOME` falso |
+| `terminal-npx-skills.png` | **Real**: salida de `npx skills@1.7.2 add` y del listado de lo instalado, en un `HOME` falso (sin telemetría) |
 | `cursor-preflight.png` | Maqueta; el bloque `Ran` es la salida real de `preflight.sh` |
 | `cursor-auditoria.png` | Maqueta completa, hallazgos ficticios |
 | `cursor-sweep.png` | Maqueta; el bloque `Ran` es la salida real de `sweep.sh` |
