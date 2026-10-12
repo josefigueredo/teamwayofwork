@@ -18,6 +18,17 @@ jobs:
       - name: Check docs links, anchors and images
         run: python tests/test_docs_links.py
 
+  skills-spec:
+    name: skills spec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check every skill against the Agent Skills format
+        run: python tests/test_skills_spec.py
+
   test:
     name: ${{ matrix.skill }}
     runs-on: ubuntu-latest
