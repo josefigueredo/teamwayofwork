@@ -25,9 +25,9 @@ Una fase no se gana por antigüedad sino por uso: algo pasa a `Standardized` cua
 
 | Skill | Fase | Para qué |
 | --- | --- | --- |
-| [`auditing-repos`](skills/auditing-repos/) | 🧪 Incubation | Auditar un repositorio y convertir los hallazgos en issues, PRs y tickets de Jira, con una compuerta de aprobación antes de publicar nada |
-| [`local-board-skill`](skills/local-board-skill/) | 🚧 Beta | Mantener un board de trabajo local trazado contra evidencia de Git y sincronizarlo con Jira sólo con aprobación explícita |
-| [`install-unified-ci`](skills/install-unified-ci/) | 🧪 Incubation | Evaluar un repositorio, auditar compatibilidad con Unified CI, generar `.github/workflows/ci.yml` canónico y podar workflows obsoletos |
+| [`auditing-repos`](skills/auditing-repos/) | 🧪 Incubation | Auditar un repositorio y convertir los hallazgos en issues, PRs y tickets de Jira, con una compuerta de aprobación antes de publicar nada. Docs: [instalar desde Cursor](skills/auditing-repos/docs/instalacion.md) · [showcase](skills/auditing-repos/docs/showcase.md) · [referencia](skills/auditing-repos/docs/referencia.md) |
+| [`local-board-skill`](skills/local-board-skill/) | 🚧 Beta | Mantener un board de trabajo local trazado contra evidencia de Git y sincronizarlo con Jira sólo con aprobación explícita. Docs: [instalar desde Cursor](skills/local-board-skill/docs/instalacion.md) · [showcase](skills/local-board-skill/docs/showcase.md) · [referencia](skills/local-board-skill/docs/referencia.md) |
+| [`install-unified-ci`](skills/install-unified-ci/) | 🧪 Incubation | Evaluar un repositorio, auditar compatibilidad con Unified CI, generar `.github/workflows/ci.yml` canónico y podar workflows obsoletos. Docs: [instalar desde Cursor](skills/install-unified-ci/docs/instalacion.md) · [showcase](skills/install-unified-ci/docs/showcase.md) · [referencia](skills/install-unified-ci/docs/referencia.md) |
 
 Cada skill tiene su `README.md` en castellano. El `SKILL.md` y los `references/` están en inglés a propósito: los consume el modelo.
 
@@ -59,7 +59,7 @@ ln -s ../../.agents/skills/local-board-skill ~/.claude/skills/local-board-skill
 
 | Comando | Fase | Para qué |
 | --- | --- | --- |
-| [`query-from-cli`](commands/query-from-cli/) | 🚧 Beta | Preguntarle algo rápido a un modelo de IA desde la terminal (`q "..."`), sin abrir una sesión interactiva |
+| [`query-from-cli`](commands/query-from-cli/) | 🚧 Beta | Preguntarle algo rápido a un modelo de IA desde la terminal (`q "..."`), sin abrir una sesión interactiva. Docs: [instalar desde Cursor](commands/query-from-cli/docs/instalacion.md) · [showcase](commands/query-from-cli/docs/showcase.md) · [referencia](commands/query-from-cli/docs/referencia.md) |
 
 A diferencia de las skills, un comando es un script suelto: no se enlaza a `~/.agents/skills/`, se agrega al `PATH` o se aliasea. Cada uno tiene su `README.md` con el detalle de instalación.
 
