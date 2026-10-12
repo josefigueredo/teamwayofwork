@@ -22,7 +22,7 @@ explica los límites.
 
 | Pieza | Qué resuelve | Jira | Se instala con | Showcase | Instalación |
 |---|---|---|---|---|---|
-| **`init_board.py` + `create_asset.py`** | Armar el board y la jerarquía | No | `ln -s` a `~/.agents/skills` (y a `~/.claude/skills`) | [Ver el caso](docs/showcase.md#1-armar-un-board-local) | [Instalar](docs/instalacion.md#1-instalar) |
+| **`init_board.py` + `create_asset.py`** | Armar el board y la jerarquía | No | `ln -s` a `~/.agents/skills` (y a `~/.claude/skills`), o `npx skills add` (copia; [límites](docs/instalacion-detallada.md#instalar-solo-la-skill-con-npx-skills-add)) | [Ver el caso](docs/showcase.md#1-armar-un-board-local) | [Instalar](docs/instalacion.md#1-instalar) |
 | **`inventory_git.py` y el grafo** | Evidencia de Git, relaciones y validación | No | viene con la skill | [Ver el caso](docs/showcase.md#2-relacionar-commits-con-el-board) | [Instalar](docs/instalacion.md#4-evidencia-de-git) |
 | **`sync.sh --save-plan`** | Plan de sincronización (dry run) | Lee, necesita credenciales | viene con la skill | [Ver el caso](docs/showcase.md#3-preparar-el-plan-de-sync) | [Instalar](docs/instalacion.md#2-credenciales-de-jira) |
 | **`sync.sh --apply-plan`** | Aplicar el plan aprobado | Escribe | viene con la skill | [Ver el caso](docs/showcase.md#4-aplicar-el-plan-aprobado) | [Instalar](docs/instalacion.md#5-plan-de-sync-y-aprobación) |
@@ -53,6 +53,8 @@ git clone git@github.com:josefigueredo/teamwayofwork.git && cd teamwayofwork
 ln -s "$PWD/skills/local-board-skill" ~/.agents/skills/local-board-skill
 ln -s ../../.agents/skills/local-board-skill ~/.claude/skills/local-board-skill   # además, para Claude Code
 ```
+
+Si no querés enlazar, `DISABLE_TELEMETRY=1 npx skills@1.7.2 add . --skill local-board-skill -a cursor -a claude-code -g -y` instala solo esta skill ([especificación](https://agentskills.io/specification)), pero como copia: no se actualiza con `git pull`.
 
 Requisito: `python3` (los scripts usan solo la biblioteca estándar; los tests corren en CI con 3.12). Para sincronizar con
 Jira, [tus credenciales](docs/instalacion-detallada.md#4-credenciales-de-jira).

@@ -114,6 +114,21 @@ class DocsTest(unittest.TestCase):
             self.assertTrue((base / "docs/img" / image).is_file())
             self.assertIn(image, guide.split("## De dónde sale cada captura", 1)[1], f"{image} missing in the origin table")
 
+    def test_local_board_npx_skills_install_is_documented_with_one_pinned_command(self):
+        command = "npx skills@1.7.2 add . --skill local-board-skill -a cursor -a claude-code -g -y"
+        base = ROOT / "skills/local-board-skill"
+        for page in ("README.md", "docs/instalacion.md", "docs/instalacion-detallada.md"):
+            text = (base / page).read_text(encoding="utf-8")
+            self.assertIn(command, text, f"{page}: the npx skills command drifted")
+            self.assertIn("https://agentskills.io/specification", text, f"{page}: link the spec")
+            self.assertIn("git pull", text, f"{page}: say it is not updated by git pull")
+        detailed = (base / "docs/instalacion-detallada.md").read_text(encoding="utf-8")
+        self.assertIn("### Instalar solo la skill con `npx skills add`", detailed)
+        self.assertIn("img/terminal-npx-skills.png", detailed)
+        guide = (base / "docs/instalacion.md").read_text(encoding="utf-8")
+        self.assertTrue((base / "docs/img/terminal-npx-skills.png").is_file())
+        self.assertIn("terminal-npx-skills.png", guide.split("## De dónde sale cada captura", 1)[1], "image missing in the origin table")
+
     def test_local_board_docs_use_the_generic_jira_names(self):
         docs = "".join(p.read_text(encoding="utf-8") for p in pages("skills/local-board-skill"))
         scripts = "".join(p.read_text(encoding="utf-8") for p in (ROOT / "skills/local-board-skill/scripts").glob("*.py"))

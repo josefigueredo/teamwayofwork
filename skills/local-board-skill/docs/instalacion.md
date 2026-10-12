@@ -40,6 +40,17 @@ Necesitás `python3` y `git`. Abrí cualquier carpeta en Cursor y pedile:
 Se enlaza, no se copia: una sola fuente de verdad. Para Claude Code hace falta además el enlace en `~/.claude/skills/`; abrí una
 sesión nueva para que el agente la tome.
 
+**Alternativa: instalar solo la skill con `npx skills`.** Si preferís no enlazar nada a mano, pedile que use el CLI
+[`skills`](https://github.com/vercel-labs/skills) desde tu clon (necesitás Node):
+
+> Instalá solo la skill local-board-skill con npx skills desde mi clon de teamwayofwork, sin telemetría
+
+El comando es `DISABLE_TELEMETRY=1 npx skills@1.7.2 add . --skill local-board-skill -a cursor -a claude-code -g -y`. Instala una **copia**, así que **no se actualiza con `git pull`** (hay que repetir el
+comando) y, si ya la habías enlazada a mano, te reemplaza el enlace por esa copia. El CLI avisa «Review skills before use; they run
+with full agent permissions». Detalles, límites y la captura de su salida, en la
+[instalación detallada](instalacion-detallada.md#instalar-solo-la-skill-con-npx-skills-add); el formato que cumple, en la
+[especificación de Agent Skills](https://agentskills.io/specification).
+
 ## 2. Credenciales de Jira
 
 Solo hacen falta para sincronizar (pasos 5 en adelante); todo lo anterior es local. Esto lo hacés vos.
@@ -102,6 +113,8 @@ atajo**: la skill lo prohíbe en su `SKILL.md`.
 
 ## 6. Mantenerla al día
 
+Si la enlazaste, alcanza con traer lo nuevo del clon (si usaste `npx skills`, repetí además el comando de instalación, porque instaló una copia):
+
 > Actualizá mi clon de teamwayofwork con lo último de main
 
 ---
@@ -122,6 +135,7 @@ atajo**: la skill lo prohíbe en su `SKILL.md`.
 | Imagen | Origen |
 |---|---|
 | `cursor-instalar.png` | Maqueta; el `head` es real a través de enlaces en un `HOME` falso |
+| `terminal-npx-skills.png` | **Real**: salida de `npx skills@1.7.2 add` y del listado de lo instalado, en un `HOME` falso (sin telemetría); se ve en la [instalación detallada](instalacion-detallada.md#instalar-solo-la-skill-con-npx-skills-add) |
 | `cursor-crear.png` | Maqueta; los `Ran` son la salida real de `init_board.py` y `create_asset.py` (board de prueba) |
 | `cursor-evidencia.png` | Maqueta; los `Ran` son la salida real sobre un repo de prueba con dos commits |
 | `cursor-sync.png` | Maqueta; el `Ran` es el error real sin credenciales, el resto es prosa ficticia |
