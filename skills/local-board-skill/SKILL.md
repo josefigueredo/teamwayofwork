@@ -8,7 +8,7 @@ compatibility: "Requires python3 (standard library only) and git. Syncing with J
 
 This skill is portable. It does not encode a project's board name, ticket prefix, Jira project, labels, repository names, dates or product taxonomy. Those belong to the selected board instance and its primary `Board.md` index profile.
 
-Reusable deterministic utilities live in `local-board-skill/scripts/`. The scripts collect, validate, generate and synchronize facts. This skill owns interpretation of diffs, domain grouping and approval boundaries.
+Reusable deterministic utilities live in `~/.agents/skills/local-board-skill/scripts/`. The scripts collect, validate, generate and synchronize facts. This skill owns interpretation of diffs, domain grouping and approval boundaries.
 
 ## Board Contract
 
@@ -20,7 +20,7 @@ A board instance must contain:
 - Entity Markdown files matched by `entity_glob`, with the project's own frontmatter contract.
 - A `_meta/` directory for Markdown documentation maintained by people and the skill: `convenciones.md`, `autores.md`, `inventario-commits.md`, `mapeo-capacidades.md`, and `spec-ticket-traceability.md`.
 
-`_meta/` never holds executable tools or structured sync state. Reusable code belongs in `local-board-skill/scripts/`; all board `.json`, `.csv`, and `.txt` artifacts belong in `<sync_dir>`. For a new board, `init_board.py` creates the complete initial `_meta` Markdown workspace and sync data directory. Define the project-specific entity hierarchy, naming and scope in the board contract; this skill does not require a board README.
+`_meta/` never holds executable tools or structured sync state. Reusable code belongs in `~/.agents/skills/local-board-skill/scripts/`; all board `.json`, `.csv`, and `.txt` artifacts belong in `<sync_dir>`. For a new board, `init_board.py` creates the complete initial `_meta` Markdown workspace and sync data directory. Define the project-specific entity hierarchy, naming and scope in the board contract; this skill does not require a board README.
 
 For Jira synchronization, each instance declares `<sync_dir>/jira-config.json`. It contains its remote issue type names, local-to-remote status map, parent strategy, and author aliases. This data is instance-owned and must not be hardcoded in skill scripts:
 
@@ -53,18 +53,18 @@ the identifier prefix from the instance profile, validates the parent type, and
 updates the parent `children` list.
 
 ```bash
-python3 local-board-skill/scripts/create_asset.py \
+python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py \
 	--board-dir <board-dir> \
 	--type epic \
 	--summary "Platform capability"
 
-python3 local-board-skill/scripts/create_asset.py \
+python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py \
 	--board-dir <board-dir> \
 	--type story \
 	--parent <epic-id> \
 	--summary "As an operator, I manage platform data"
 
-python3 local-board-skill/scripts/create_asset.py \
+python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py \
 	--board-dir <board-dir> \
 	--type task \
 	--parent <story-id> \
@@ -72,7 +72,7 @@ python3 local-board-skill/scripts/create_asset.py \
 	--repo <repository> \
 	--spec-ref <spec-id>
 
-python3 local-board-skill/scripts/create_asset.py \
+python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py \
 	--board-dir <board-dir> \
 	--type sub-task \
 	--parent <task-id> \
@@ -113,16 +113,16 @@ Use this mode when existing Jira assets do not have all known Git evidence linke
 
 ## Commands
 
-Run from the workspace root, replacing `<board-dir>` with the instance directory:
+Run from the workspace root (your project, not the skill folder), replacing `<board-dir>` with the instance directory:
 
 ```bash
-python3 skills/local-board-skill/scripts/inventory_git.py --board-dir <board-dir> --since '<cutoff>'
-python3 skills/local-board-skill/scripts/render_git_inventory.py --board-dir <board-dir>
-python3 skills/local-board-skill/scripts/refresh_relations_catalog.py --board-dir <board-dir> --workspace . --output <board-dir>/sync/relations.json
-python3 skills/local-board-skill/scripts/validate_relations.py --board-dir <board-dir>
-python3 skills/local-board-skill/scripts/generate_traceability.py --board-dir <board-dir>
-skills/local-board-skill/scripts/sync.sh <board-dir> --save-plan <board-dir>/sync/.review-plan.json
-skills/local-board-skill/scripts/sync.sh <board-dir> --apply-plan <board-dir>/sync/.review-plan.json
+python3 ~/.agents/skills/local-board-skill/scripts/inventory_git.py --board-dir <board-dir> --since '<cutoff>'
+python3 ~/.agents/skills/local-board-skill/scripts/render_git_inventory.py --board-dir <board-dir>
+python3 ~/.agents/skills/local-board-skill/scripts/refresh_relations_catalog.py --board-dir <board-dir> --workspace . --output <board-dir>/sync/relations.json
+python3 ~/.agents/skills/local-board-skill/scripts/validate_relations.py --board-dir <board-dir>
+python3 ~/.agents/skills/local-board-skill/scripts/generate_traceability.py --board-dir <board-dir>
+~/.agents/skills/local-board-skill/scripts/sync.sh <board-dir> --save-plan <board-dir>/sync/.review-plan.json
+~/.agents/skills/local-board-skill/scripts/sync.sh <board-dir> --apply-plan <board-dir>/sync/.review-plan.json
 ```
 
 ### Jira sync performance
@@ -131,19 +131,19 @@ Entity creates/updates run sequentially in hierarchy order (epic → story → t
 
 ```bash
 # Fix commit URLs (strips .git suffix from remote paths)
-python3 skills/local-board-skill/scripts/enrich_commit_urls.py \
+python3 ~/.agents/skills/local-board-skill/scripts/enrich_commit_urls.py \
   --board-dir <board-dir> --inventory <board-dir>/sync/git-inventory.json
 
 # Purge stale remote links with malformed .git/commit URLs (parallel per issue).
 # Without --apply it only prints the links it would delete; add --apply to delete them.
-python3 skills/local-board-skill/scripts/purge_bad_remote_links.py \
+python3 ~/.agents/skills/local-board-skill/scripts/purge_bad_remote_links.py \
   --board-dir <board-dir> --workers 12
-python3 skills/local-board-skill/scripts/purge_bad_remote_links.py \
+python3 ~/.agents/skills/local-board-skill/scripts/purge_bad_remote_links.py \
   --board-dir <board-dir> --workers 12 --apply
 
 # Apply with parallel link_remote (default 12 workers, throttle 0.3s)
 JIRA_WRITE_THROTTLE=0.3 JIRA_SYNC_WORKERS=12 \
-  skills/local-board-skill/scripts/sync.sh <board-dir> --apply-plan <board-dir>/sync/.review-plan.json
+  ~/.agents/skills/local-board-skill/scripts/sync.sh <board-dir> --apply-plan <board-dir>/sync/.review-plan.json
 ```
 
 `--workers` on `sync_board.py` overrides `JIRA_SYNC_WORKERS` (default 12).
