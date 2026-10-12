@@ -1,0 +1,42 @@
+<!doctype html><meta charset="utf-8"><style>*{box-sizing:border-box}body{margin:0;background:#cfd3e6;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif}
+.win{margin:22px;border-radius:12px;overflow:hidden;background:#1a1a1f;color:#d7d7dd;box-shadow:0 18px 50px rgba(20,20,50,.4),0 0 0 1px rgba(0,0,0,.3);display:flex;flex-direction:column}
+.bar{height:38px;background:#222228;display:flex;align-items:center;padding:0 14px;position:relative;flex:none}
+.dots span{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px}.r{background:#ff5f57}.y{background:#febc2e}.g{background:#28c840}
+.ttl{position:absolute;left:0;right:0;text-align:center;color:#9a9aa6;font-size:13px}
+.main{display:flex;flex:1;min-height:0}
+.side{width:210px;background:#1e1e24;border-right:1px solid #2c2c34;padding:12px;font-size:12.5px;color:#a8a8b4;flex:none}
+.side b{display:block;color:#7d7d8a;font-size:11px;letter-spacing:.06em;margin:4px 0 8px}
+.side div{padding:3px 0}.side .i{padding-left:14px}.side .j{padding-left:28px}.side .hot{color:#e6e6ec}
+.chat{flex:1;padding:18px 22px;font-size:14px;line-height:1.5}
+.u{background:#2b2b34;border-radius:10px;padding:10px 14px;margin:0 0 16px auto;max-width:78%;width:fit-content}
+.a p{margin:0 0 10px}.a ul{margin:0 0 10px;padding-left:22px}
+.chip{display:block;background:#23232b;border:1px solid #32323c;border-radius:8px;padding:8px 12px;margin:0 0 10px;font:12.5px/1.45 Menlo,monospace;color:#c9c9d3;white-space:pre-wrap}
+.chip em{font-style:normal;color:#7ee787}.chip span{color:#7d7d8a}
+code{font:12.5px Menlo,monospace;background:#2b2b34;padding:1px 5px;border-radius:4px}
+.cmd{background:#101014;border:1px solid #32323c;border-radius:8px;padding:10px 12px;font:12.5px Menlo,monospace;color:#79c0ff;margin:0 0 10px;white-space:pre-wrap}
+.in{margin:6px 22px 16px;border:1px solid #3a3a46;border-radius:10px;padding:10px 14px;color:#6c6c7a;font-size:13px}
+.right{flex:1;display:flex;flex-direction:column;min-width:0}</style><div class="win"><div class="bar"><div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><div class="ttl">mi-proyecto — Cursor</div></div><div class="main"><div class="side"><b>EXPLORER</b><div class="hot">▾ mi-proyecto</div><div class="i">▸ .github</div><div class="i">▸ src</div><div class="i">AUDIT-REPORT.md</div></div><div class="right"><div class="chat"><div class="u">Antes de auditar, corré el preflight y decime qué me falta</div><div class="a"><span class="chip"><em>Ran</em> ~/.agents/skills/auditing-repos/scripts/preflight.sh
+<span>── repository ──
+git repo                   yes (fix/endurecer-imagen)
+working tree               clean
+default branch             unknown
+
+── github ──
+gh auth                    NO — findings can only be written locally
+
+── jira (optional) ──
+jira                       skipped (missing: IC_JIRA_BASE_URL IC_JIRA_USER_EMAIL IC_JIRA_API_TOKEN)
+
+── audit report safety ──
+AUDIT-REPORT.md            NOT IGNORED in this repo
+  →                      the report holds detailed security findings and is a draft until
+                           approved. A git add -A would publish it to history before the gate.
+  fix                      echo &#x27;AUDIT-REPORT.md&#x27; &gt;&gt; .gitignore   (or write to the scratchpad)
+
+── verification tooling ──
+docker                     yes
+uv                         yes
+rg                         yes
+fd                         yes
+
+ok=1 warnings=2 blocking=0</span></span><p>Hay <b>git</b> y el árbol está limpio. Dos avisos: <code>gh</code> no está autenticado (voy a poder escribir el informe local, pero <b>no publicar</b>) y Jira se saltea porque faltan las variables. Además <code>AUDIT-REPORT.md</code> no está en el <code>.gitignore</code>: lo agrego antes de escribirlo.</p></div></div><div class="in">Pedile algo al agente…</div></div></div></div>
