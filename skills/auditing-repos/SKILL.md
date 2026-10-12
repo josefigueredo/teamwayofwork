@@ -1,6 +1,7 @@
 ---
 name: auditing-repos
 description: Use when asked to review, audit, or assess a local repository for code quality, architecture, testability, coverage, security, documentation or resilience — especially when the findings should become GitHub issues and pull requests, or be tracked on a Jira board.
+compatibility: "Requires git. Publishing issues and pull requests needs an authenticated gh CLI; without it the audit report is only written locally. Jira tracking is optional and uses credentials from environment variables."
 ---
 
 # Auditing Repos
