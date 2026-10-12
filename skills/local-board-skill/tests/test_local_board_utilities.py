@@ -269,8 +269,11 @@ class UtilitiesCliTests(unittest.TestCase):
             def delete_remote_link(self, key, link_id): self.deleted.append((key, link_id))
 
         with patch.object(purge_bad_remote_links, "JiraClient", Client):
-            key, scanned, deleted = purge_bad_remote_links.purge_issue("C-1", "url", "e", "t", 0)
-        self.assertEqual((key, scanned, deleted, Client.instances[0].deleted), ("C-1", 2, 1, [("C-1", "1")]))
+            key, scanned, bad = purge_bad_remote_links.purge_issue("C-1", "url", "e", "t", 0, apply=True)
+            _, _, planned = purge_bad_remote_links.purge_issue("C-1", "url", "e", "t", 0)
+        self.assertEqual((key, scanned, bad), ("C-1", 2, [("1", "https://x/repo.git/commit/a")]))
+        self.assertEqual(planned, bad)
+        self.assertEqual([c.deleted for c in Client.instances], [[("C-1", "1")], []])
         self.assertTrue(purge_bad_remote_links.bad_url("x.git"))
         self.assertFalse(purge_bad_remote_links.bad_url("https://x/commit/a"))
 
@@ -286,10 +289,47 @@ class UtilitiesCliTests(unittest.TestCase):
             with patch.dict("os.environ", {"JIRA_EMAIL": "a@test", "JIRA_API_TOKEN": "token", "JIRA_WRITE_THROTTLE": "0.2"}, clear=True), patch.object(
                 purge_bad_remote_links, "load_settings", return_value=settings
             ), patch.object(purge_bad_remote_links, "tracker_base_url", return_value="https://jira.test"), patch.object(
-                purge_bad_remote_links, "purge_issue", side_effect=[("T-1", 2, 1), ("T-2", 3, 2)]
+                purge_bad_remote_links, "purge_issue", side_effect=[("T-1", 2, [("1", "https://x/a.git")]), ("T-2", 3, [])]
             ) as purge, patch.object(sys, "argv", ["purge.py", "--board-dir", str(board), "--workers", "99"]):
                 self.assertEqual(purge_bad_remote_links.main(), 0)
             self.assertEqual(purge.call_count, 2)
+
+    def test_purge_main_defaults_to_plan_only_and_deletes_only_with_apply(self) -> None:
+        class Client:
+            instances: list["Client"] = []
+            def __init__(self, *_args, **_kwargs): self.deleted = []; Client.instances.append(self)
+            def remote_links(self, _key): return [{"id": "1", "object": {"url": "https://x/repo.git/commit/a"}}, {"id": "2", "object": {"url": "https://x/ok"}}]
+            def delete_remote_link(self, key, link_id): self.deleted.append((key, link_id))
+
+        def run(extra: list[str]) -> tuple[int, str]:
+            Client.instances.clear()
+            with tempfile.TemporaryDirectory() as directory:
+                board = write_board(Path(directory) / "board")
+                document = load_document(board / "sync" / "relations.json")
+                document["assets"] = [{"id": "asset:A", "jira_key": "T-1"}]
+                save_document(board / "sync" / "relations.json", document)
+                settings = type("Settings", (), {"relations_path": board / "sync" / "relations.json"})()
+                out = io.StringIO()
+                with patch.dict("os.environ", {"JIRA_EMAIL": "a@test", "JIRA_API_TOKEN": "token"}, clear=True), patch.object(
+                    purge_bad_remote_links, "load_settings", return_value=settings
+                ), patch.object(purge_bad_remote_links, "tracker_base_url", return_value="https://jira.test"), patch.object(
+                    purge_bad_remote_links, "JiraClient", Client
+                ), patch.object(sys, "argv", ["purge.py", "--board-dir", str(board), *extra]), contextlib.redirect_stdout(out):
+                    code = purge_bad_remote_links.main()
+            return code, out.getvalue()
+
+        code, output = run([])
+        self.assertEqual(code, 0)
+        self.assertEqual([c.deleted for c in Client.instances], [[]])
+        self.assertIn("T-1", output)
+        self.assertIn("https://x/repo.git/commit/a", output)
+        self.assertNotIn("https://x/ok", output)
+        self.assertIn("--apply", output)
+
+        code, output = run(["--apply"])
+        self.assertEqual(code, 0)
+        self.assertEqual([c.deleted for c in Client.instances], [[("T-1", "1")]])
+        self.assertIn("deleted 1", output)
 
     def test_rebuild_index_cli_renders_hierarchy_and_rejects_other_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
