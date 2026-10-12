@@ -72,6 +72,7 @@ Los repos del Harness (skills, CLIs y MCPs del flujo Product Brain + Spec-Kit + 
 | [`WayOfWork`](https://github.com/josefigueredo/wow) | 🧪 Incubation | Skills atómicas y el CLI `wow` para trabajar con Product Brain, Spec-Kit y modelos fuertes sin perder la telemetría de Spec-Kit |
 | [`arq-review`](https://github.com/josefigueredo/arch-review) | 🧪 Incubation | Revisión de Arquitectura de pedidos `PRY-AAAA-NNNN`: skills `arq-manager` y `arq-architect` |
 | [`product-brain-mcp`](https://github.com/josefigueredo/product-brain-skill-mcp) | 🧪 Incubation | MCP local `pbmcp` y skill `product-brain` para armar iniciativas, PRD, RFC y épicas y exportarlas a Jira |
+| [`confluence-team-kit`](https://github.com/josefigueredo/confluence-skill-mcp) | 🚧 Beta | CLI `ctk`: publica la documentación de un repo en Confluence, con dueño verificado y aviso de drift antes de pisar |
 | [`run-in-cursor`](https://github.com/josefigueredo/run-in-cursor) | 🚧 Beta | Mandarle un prompt o slash command al agente de Cursor desde otro agente, registrado como uso real de Cursor |
 | [`jira-team-kit`](https://github.com/josefigueredo/jira-team-kit) | 🚧 Beta | Skill `jira-team-kit`: crea una épica de Jira y la mantiene espejada como kanban local |
 
