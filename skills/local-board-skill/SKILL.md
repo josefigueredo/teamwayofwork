@@ -134,9 +134,12 @@ Entity creates/updates run sequentially in hierarchy order (epic → story → t
 python3 skills/local-board-skill/scripts/enrich_commit_urls.py \
   --board-dir <board-dir> --inventory <board-dir>/sync/git-inventory.json
 
-# Purge stale remote links with malformed .git/commit URLs (parallel per issue)
+# Purge stale remote links with malformed .git/commit URLs (parallel per issue).
+# Without --apply it only prints the links it would delete; add --apply to delete them.
 python3 skills/local-board-skill/scripts/purge_bad_remote_links.py \
   --board-dir <board-dir> --workers 12
+python3 skills/local-board-skill/scripts/purge_bad_remote_links.py \
+  --board-dir <board-dir> --workers 12 --apply
 
 # Apply with parallel link_remote (default 12 workers, throttle 0.3s)
 JIRA_WRITE_THROTTLE=0.3 JIRA_SYNC_WORKERS=12 \

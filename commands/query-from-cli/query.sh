@@ -7,7 +7,7 @@ usage() {
   cat <<'EOF'
 Usage: q [--model=claude|codex|copilot|gemini] <prompt>
 
-Quick AI query from terminal. Defaults to claude.
+Quick AI query from terminal. Defaults to copilot.
 All CLIs run in lightweight mode (no MCPs, plugins, or skills).
 
 Examples:
