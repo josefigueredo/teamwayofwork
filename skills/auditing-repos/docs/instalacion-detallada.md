@@ -90,8 +90,8 @@ $SKILL/scripts/sweep.sh main          # 40 chars, tooling local, atribución, SH
 
 ![Terminal con sweep.sh main limpio (código 0) y con una rama base inexistente (código 2)](img/terminal-sweep.png)
 
-Un detalle que se ve en la captura: con cero actions fijadas por SHA, el sweep imprime `all 0 pinned action SHAs exist…`.
-Es un `✓` sobre nada que verificar; leelo como «no había nada que chequear».
+Un detalle que se ve en la captura: con cero actions fijadas por SHA, el sweep imprime `· no pinned action SHAs to verify`
+(con un `·`, no con un `✓`): no había nada que chequear. Con una o más, sigue diciendo `✓ all N pinned action SHAs exist…`.
 
 ```bash
 $SKILL/scripts/check-attribution.sh main
