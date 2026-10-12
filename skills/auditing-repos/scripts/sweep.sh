@@ -89,7 +89,11 @@ if command -v gh >/dev/null 2>&1; then
     [ "$tsha" = "$sha" ] || { flag "$repo@$sha is NOT $tag (that tag is $tsha)"; bad=1; }
   done < <(rg -oIP 'uses:\s*\K[A-Za-z0-9._-]+/[A-Za-z0-9._/-]+@[a-f0-9]{40}(?:\s*#\s*(v[0-9][^\s]*))?' .github/workflows 2>/dev/null \
            | sed -E 's/[[:space:]]*#[[:space:]]*(v[^[:space:]]+)$/|\1/' | sort -u)
-  [ "$bad" -eq 0 ] && pass "all $checked pinned action SHAs exist and match their version comment"
+  if [ "$checked" -eq 0 ]; then
+    echo "· no pinned action SHAs to verify"
+  elif [ "$bad" -eq 0 ]; then
+    pass "all $checked pinned action SHAs exist and match their version comment"
+  fi
 else
   echo "· skipped action SHA check (no gh)"
 fi
