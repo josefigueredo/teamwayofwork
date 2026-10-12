@@ -1,6 +1,6 @@
 # install-unified-ci
 
-> 🧪 **Fase: Incubation.** Esta skill vive canónicamente en [`core-architecture-gh-workflows`](https://github.com/josefigueredo/core-architecture-gh-workflows/tree/main/skills/install-unified-ci). Usala y reportá lo que encuentres; todavía no construyas encima. Ver el [ciclo de vida](../../README.md#ciclo-de-vida).
+> 🧪 **Fase: Incubation.** Esta skill vive canónicamente en [`core-architecture-gh-workflows`](https://github.com/josefigueredo/core-architecture-gh-workflows/tree/main/skills/install-unified-ci). Usala y reportá lo que encuentres; todavía no construyas encima. Ver el [ciclo de vida](../../../README.md#ciclo-de-vida).
 
 Evalúa un repositorio, audita su compatibilidad con los workflows de Unified CI (UCI), genera el `.github/workflows/ci.yml` canónico adecuado a su stack tecnológico y elimina workflows de CI obsoletos.
 
