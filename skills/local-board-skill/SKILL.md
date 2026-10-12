@@ -1,7 +1,7 @@
 ---
 name: local-board-skill
-user-invocable: true
 description: "Use when bootstrapping a local work board, analyzing commits since its last sync, relating specs and tickets, reconciling historical Git evidence, or preparing and applying an approved Jira sync."
+compatibility: "Requires python3 (standard library only) and git. Syncing with Jira also needs the JIRA_EMAIL and JIRA_API_TOKEN environment variables plus JIRA_BASE_URL or JIRA_CLOUD_ID."
 ---
 
 # Local Board Traceability
