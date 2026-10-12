@@ -2,59 +2,67 @@
 
 > 🚧 **Fase: Beta.** Se usa de verdad, todavía se ajusta con el uso. Apoyate y avisá si rompe. Ver el [ciclo de vida](../../README.md#ciclo-de-vida).
 
-Mantiene un board de trabajo local en Markdown — épics, historias, tareas y sub-tareas — trazado contra la evidencia de Git, y lo sincroniza con Jira sólo después de una aprobación explícita.
+Una skill para mantener un board de trabajo en archivos Markdown (épicas, historias, tareas y subtareas), trazado contra la
+evidencia de Git, y sincronizarlo con Jira solo después de revisar un plan. Cada cosa que le pedís al agente tiene su respuesta:
 
-## El principio
+| Le decís al agente… | Y la skill… |
+|---|---|
+| *«Armame un board local para este proyecto»* | crea la estructura (`Board.md`, `_meta/`, `sync/`) y la jerarquía épica → historia → tarea → subtarea |
+| *«¿Qué commits hay desde el último sync?»* | inventaría los repos desde la fecha de corte y lee cada diff, no solo el título |
+| *«Relacioná estos commits y specs con las tareas»*, *«reconciliá la evidencia histórica»* | arma el grafo de relaciones, lo valida y rechaza nodos sueltos antes de llegar a Jira |
+| *«Preparame el plan de sync con Jira»* | genera un plan (dry run) con un checksum, sin escribir en Jira |
+| *«Aplicá el plan que aprobé»* | verifica el plan guardado y el grafo, y recién ahí escribe en Jira |
+| *«Limpiá los links remotos con `.git`»* | primero lista los links remotos mal formados que borraría; borra solo si se lo pedís con `--apply` |
 
-El board vive en archivos Markdown versionados junto al código, no en la cabeza de nadie ni sólo en Jira. Cada entidad del board se relaciona con la evidencia que la sustenta — commits, specs, PRs — a través de un grafo de relaciones explícito, así que un hallazgo o un estado siempre se puede rastrear hasta el commit que lo originó.
+**Lo que escribe en Jira es solo `--apply-plan` y la limpieza de links con `--apply`**; todo lo demás es local. La aprobación es una
+práctica de la skill (guardar el plan, revisarlo, aplicar ese mismo plan), no una ventana ni un bloqueo: el [showcase](docs/showcase.md#qué-protege-y-qué-no)
+explica los límites.
 
-Publicar en Jira es la última etapa, no la primera: primero se genera un plan de sincronización en modo *dry-run*, se lo revisa, y recién con la aprobación se aplica.
+## Elegí por dónde empezar
 
-## Cuándo usarla
+| Pieza | Qué resuelve | Jira | Se instala con | Showcase | Instalación |
+|---|---|---|---|---|---|
+| **`init_board.py` + `create_asset.py`** | Armar el board y la jerarquía | No | `ln -s` a `~/.agents/skills` (y a `~/.claude/skills`) | [Ver el caso](docs/showcase.md#1-armar-un-board-local) | [Instalar](docs/instalacion.md#1-instalar) |
+| **`inventory_git.py` y el grafo** | Evidencia de Git, relaciones y validación | No | viene con la skill | [Ver el caso](docs/showcase.md#2-relacionar-commits-con-el-board) | [Instalar](docs/instalacion.md#4-evidencia-de-git) |
+| **`sync.sh --save-plan`** | Plan de sincronización (dry run) | Lee, necesita credenciales | viene con la skill | [Ver el caso](docs/showcase.md#3-preparar-el-plan-de-sync) | [Instalar](docs/instalacion.md#2-credenciales-de-jira) |
+| **`sync.sh --apply-plan`** | Aplicar el plan aprobado | Escribe | viene con la skill | [Ver el caso](docs/showcase.md#4-aplicar-el-plan-aprobado) | [Instalar](docs/instalacion.md#5-plan-de-sync-y-aprobación) |
+| **`purge_bad_remote_links.py`** | Quitar links remotos con `.git` | Lee; borra solo con `--apply` | viene con la skill | [Ver el caso](docs/showcase.md#5-limpiar-links-remotos-mal-formados) | [Instalar](docs/instalacion.md#2-credenciales-de-jira) |
 
-- Bootstrapear un board local desde cero para un proyecto nuevo
-- Analizar los commits desde el último sync y relacionarlos con specs, tickets y capacidades
-- Reconciliar evidencia histórica de Git que todavía no está vinculada a los assets de Jira
-- Preparar y aplicar (con aprobación) una sincronización hacia Jira
+## Un ejemplo: preparar el plan sin credenciales
 
-## Instalación
+Sin credenciales, `--save-plan` no llega a Jira: corta con un error claro y no escribe nada. La salida es real, corrida sobre
+un board de prueba; la conversación es una maqueta.
 
-Enlazá la skill donde tu runtime la busca, en vez de copiarla — así seguís una sola fuente de verdad y no una copia que se desactualiza:
+![Maqueta de Cursor: el agente corre sync.sh --save-plan y avisa que faltan las credenciales de Jira](docs/img/cursor-sync.png)
+
+## Qué documento leer
+
+| Si querés… | Leé | Qué encontrás |
+|---|---|---|
+| **Instalarla y probarla, desde Cursor** | [Instalación y primer uso](docs/instalacion.md) | Todo con prompts: instalar, credenciales, tu primer board, evidencia y el plan de sync |
+| **Instalarla comando por comando** | [Instalación detallada](docs/instalacion-detallada.md) | Requisitos, `ln -s`, cada script con su salida real y la corrida de los tests |
+| **Ver todo lo que hace** | [Showcase](docs/showcase.md) | Cada pieza en un escenario, qué protege y qué no |
+| **Consultar un detalle** | [Referencia](docs/referencia.md) | El principio, el contrato del board, la configuración de Jira y los scripts |
+
+El `SKILL.md` está en inglés a propósito: lo consume el modelo.
+
+## En tres comandos
 
 ```bash
+git clone git@github.com:josefigueredo/teamwayofwork.git && cd teamwayofwork
 ln -s "$PWD/skills/local-board-skill" ~/.agents/skills/local-board-skill
-ln -s ../../.agents/skills/local-board-skill ~/.claude/skills/local-board-skill
+ln -s ../../.agents/skills/local-board-skill ~/.claude/skills/local-board-skill   # además, para Claude Code
 ```
 
-`~/.agents/skills/` lo leen Codex, Copilot CLI, GitHub Copilot en VS Code, Cursor y Gemini CLI. Para Claude Code además hace falta el enlace en `~/.claude/skills/`.
+Requisito: `python3` (los scripts usan solo la biblioteca estándar; los tests corren en CI con 3.12). Para sincronizar con
+Jira, [tus credenciales](docs/instalacion-detallada.md#4-credenciales-de-jira).
 
-## El contrato del board
-
-Un board instanciado necesita:
-
-- Un `Board.md` primario con frontmatter: `board_name`, `entity_glob`, `entity_id_prefix`, `sync_dir`, `relations_file`, `jira_project_key`, `jira_label`, `remote_link_namespace`.
-- Un grafo de relaciones bajo `<sync_dir>`, nombrado según `relations_file`.
-- Un archivo de estado de sync en `<sync_dir>/state.json` con `last_run`.
-- Archivos de entidad Markdown que matchean `entity_glob`.
-- Un directorio `_meta/` con la documentación mantenida por personas y por la skill.
-
-`init_board.py` crea toda esa estructura inicial de una vez. El detalle completo de los tres modos de operación (bootstrap, análisis desde el último sync, reconciliación histórica), el contrato de `jira-config.json` y los comandos disponibles está en `SKILL.md`, en inglés porque lo consume el modelo.
-
-## Configuración de Jira
-
-Copiá la plantilla y completá tus credenciales; nunca commiteés el resultado:
+## Desarrollo
 
 ```bash
-cp scripts/.env.example <board-dir>/sync/.env
+python3 -m unittest discover -s skills/local-board-skill/tests -p 'test*.py' -v   # 35 tests
+python3 tests/test_docs_links.py                                                   # los links de estos docs
 ```
 
-## Scripts
-
-Todos son ejecutables desde `scripts/`. El punto de entrada para sincronizar es:
-
-```bash
-scripts/sync.sh <board-dir> --save-plan <board-dir>/sync/.review-plan.json
-scripts/sync.sh <board-dir> --apply-plan <board-dir>/sync/.review-plan.json
-```
-
-`--save-plan` no escribe nada en Jira. `--apply-plan` verifica el plan guardado y el checksum del grafo antes de aplicar cambios remotos.
+CI (`.github/workflows/python-skill-tests.yml`) corre esa suite y exige al menos 90% de cobertura sobre
+`skills/local-board-skill/scripts`.

@@ -2,69 +2,56 @@
 
 > 🚧 **Fase: Beta.** Se usa de verdad para consultas rápidas del día a día, pero el prompt y las opciones todavía se ajustan con el uso. Apoyate y avisá si algo rompe. Ver el [ciclo de vida](../../README.md#ciclo-de-vida).
 
-Un `q` para hacerle una pregunta rápida a un modelo de IA sin abrir una sesión interactiva ni gastar contexto de un agente. Corre el CLI que elijas (`claude`, `codex`, `copilot` o `gemini`) en modo liviano —sin MCPs, plugins ni skills— y devuelve solo la respuesta, en texto plano listo para leer en la terminal.
+Un `q` para hacerle una pregunta rápida a un modelo de IA desde la terminal, sin abrir una sesión interactiva. **Es un comando,
+no una skill**: no se enlaza a `~/.agents/skills/` y no lo invoca un agente; lo escribís vos en tu terminal. Lo que sí le
+podés pedir al agente de Cursor es que lo instale y lo compruebe.
 
-## Cuándo usarlo
-
-- Preguntas puntuales de una sola línea: un comando de `git`, una regex, un flag que no te acordás
-- Cuando no querés arrastrar el contexto de la sesión de agente que tenés abierta
-- Scripting: el output es texto plano, sin markdown, pensado para parsearse o pegarse directo
-
-**Cuándo NO:** para tareas que necesitan editar archivos, correr comandos, o mantener contexto entre turnos, usá el agente normal — esto es de una sola pasada (`-p`), sin forma de responderle.
-
-## Instalación
-
-Es un script suelto, no una skill: no se enlaza a `~/.agents/skills/`, se agrega al `PATH` o se aliasea.
-
-```bash
-git clone git@github.com:josefigueredo/teamwayofwork.git
-cd teamwayofwork
-
-# opción A: alias en tu shell
-echo 'alias q="$PWD/commands/query-from-cli/query.sh"' >> ~/.zshrc
-
-# opción B: symlink a un directorio que ya esté en tu PATH
-ln -s "$PWD/commands/query-from-cli/query.sh" ~/.local/bin/q
-```
-
-Verificá que quedó:
-
-```bash
-q "decime hola"
-```
-
-## Uso
-
-```
-q [--model=claude|codex|copilot|gemini] <prompt>
-```
-
-Sin `--model`, usa `copilot`.
-
-```bash
-q "command to rank folders by last modified recursively"
-q --model=gemini "how to find large files on macOS"
-q --model=codex "regex to match IPv6 addresses"
-q --model=copilot "git command to squash last 3 commits"
-```
-
-La respuesta llega en el mismo idioma de tu pregunta, sin `**`, `#` ni backticks de markdown — si el modelo arma una tabla, la alinea a mano con espacios para que se lea bien en una terminal monoespaciada.
-
-Como es de una sola pasada, si tu pregunta es muy ambigua el modelo no se queda esperando una aclaración: responde con su mejor interpretación y, si de verdad le falta contexto, termina con una línea del estilo *"volvé a correr el prompt agregando el detalle que falta"*.
-
-## Requisitos
-
-| | Sin esto |
+| Le decís… | Y pasa… |
 |---|---|
-| El CLI del modelo elegido (`claude`, `codex`, `copilot` o `gemini`) instalado y autenticado | Ese `--model` no corre |
-| `jq` | `--model=codex` no puede extraer la respuesta del JSON que devuelve |
+| *(al agente)* «Instalame el comando `q`» | deja un alias en tu `~/.zshrc` y comprueba que `jq` esté (lo necesita `--model=codex`) |
+| *(al agente)* «Comprobá que `q` responde» | corre `q` con un modelo inexistente: prueba el script sin llamar a ningún modelo |
+| *(en tu terminal)* `q "comando para …"` | consulta a `copilot` (el modelo por defecto) en modo liviano y devuelve texto plano |
+| *(en tu terminal)* `q --model=claude\|codex\|gemini "…"` | lo mismo con el CLI que elijas, sin MCPs, plugins ni skills |
 
-`copilot` es el standalone de `@github/copilot` (npm, Homebrew o el script de instalación) — no depende de la extensión de `gh`.
+**Qué toca y qué no:** el script solo corre el CLI del modelo y imprime su respuesta; no escribe archivos. Pero «liviano» **no es**
+«sin herramientas»: el modo de `copilot` se lanza con `--allow-all-tools` (ver los [límites](docs/showcase.md#qué-protege-y-qué-no)).
 
-## Estructura
+## Elegí por dónde empezar
 
+| Pieza | Qué resuelve | Escribe | Se instala con | Showcase | Instalación |
+|---|---|---|---|---|---|
+| **`query.sh`** (el alias `q`) | Una pregunta de una línea a un modelo, sin contexto de agente | No | un alias en `~/.zshrc` | [Ver el caso](docs/showcase.md#1-una-pregunta-rápida-desde-la-terminal) | [Instalar](docs/instalacion.md#1-instalar) |
+| **`--model=`** | Elegir `claude`, `codex`, `copilot` o `gemini` | No | viene con el script | [Ver el caso](docs/showcase.md#2-elegir-el-modelo) | [Instalar](docs/instalacion.md#2-autenticar-el-modelo-que-vas-a-usar) |
+
+## Un ejemplo: instalarlo desde Cursor
+
+El agente deja el alias y avisa del único paso que es tuyo. La conversación es una maqueta.
+
+![Maqueta de Cursor: el agente agrega el alias q a ~/.zshrc y avisa que falta autenticar el CLI del modelo](docs/img/cursor-instalar.png)
+
+## Qué documento leer
+
+| Si querés… | Leé | Qué encontrás |
+|---|---|---|
+| **Instalarlo desde Cursor** | [Instalación y primer uso](docs/instalacion.md) | Prompts para instalar y comprobar, y el paso manual (autenticar el modelo) |
+| **Instalarlo comando por comando** | [Instalación detallada](docs/instalacion-detallada.md) | Requisitos, alias o symlink y qué argumentos recibe cada CLI |
+| **Ver todo lo que hace** | [Showcase](docs/showcase.md) | Cada uso en un escenario, qué protege y qué no |
+| **Consultar un detalle** | [Referencia](docs/referencia.md) | El README original: cuándo usarlo, uso, requisitos |
+
+## En tres comandos
+
+```bash
+git clone git@github.com:josefigueredo/teamwayofwork.git && cd teamwayofwork
+echo "alias q=\"$PWD/commands/query-from-cli/query.sh\"" >> ~/.zshrc      # abrí una terminal nueva después
+q "decime hola"                                                                  # necesita el CLI del modelo autenticado
 ```
-query-from-cli/
-├── query.sh    # el script (lo corrés vos, o lo aliaseás a `q`)
-└── README.md   # este archivo
+
+Requisitos: `bash`, el CLI del modelo que uses autenticado y, solo para `--model=codex`, `jq`.
+
+## Desarrollo
+
+```bash
+python3 tests/test_docs_links.py     # los links de estos docs, desde la raíz del repo
 ```
+
+El script no tiene tests propios.

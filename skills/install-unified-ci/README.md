@@ -2,90 +2,59 @@
 
 > 🧪 **Fase: Incubation.** Esta skill vive canónicamente en [`core-architecture-gh-workflows`](https://github.com/josefigueredo/core-architecture-gh-workflows/tree/main/skills/install-unified-ci). Usala y reportá lo que encuentres; todavía no construyas encima. Ver el [ciclo de vida](../../README.md#ciclo-de-vida).
 
-Evalúa un repositorio, audita su compatibilidad con los workflows de Unified CI (UCI), genera el `.github/workflows/ci.yml` canónico adecuado a su stack tecnológico y elimina workflows de CI obsoletos.
+Este directorio **no contiene la skill**: contiene su instalador (`scripts/install.sh`) y esta documentación. La skill en sí
+(`SKILL.md`, `references/`) vive en el repo `core-architecture-gh-workflows` y el instalador la trae de ahí. Para Claude Code,
+Codex, Copilot CLI, Gemini CLI y OMP, esto es lo que le podés pedir al agente una vez instalada:
 
-## El principio
+| Le decís al agente… | Y la skill… |
+|---|---|
+| *«Adoptá el CI unificado acá»*, *«migrá este repo a Unified CI»* | evalúa el repo, genera el `.github/workflows/ci.yml` canónico para su stack y poda los workflows viejos |
+| *«Revisá si este repo puede usar el CI unificado»* | audita la compatibilidad y, si hay requerimientos incompatibles, **frena y reporta los gaps** en vez de romper el CI |
+| *«Reemplazá los workflows viejos por el CI unificado»* | reemplaza los workflows de test, build, lint o Sonar propios por el flujo unificado |
 
-**Cero boilerplate, cero roturas.**
+Eso es lo que dice el README de la skill (en [la referencia](docs/referencia.md)); **este repo no incluye su `SKILL.md`, así
+que no se verificó acá cómo se comporta**. Lo que sí se verificó es el instalador.
 
-Si un repositorio tiene requerimientos incompatibles (deploys directos a la nube como AWS ECS/Lambda o GCP, matrices multi-OS o migraciones de base de datos directas en el runner), la skill frena y reporta los gaps con exactitud en vez de romper la integración continua del equipo.
+**Qué hace el instalador:** descarga la skill en `~/.cache/core-architecture-gh-workflows` y crea enlaces en
+`~/.agents/skills/` y `~/.claude/skills/`. Antes de enlazar **borra** lo que haya en esos dos destinos: ver los
+[límites](docs/showcase.md#qué-protege-y-qué-no).
 
-**La verdad vive con los workflows:** La especificación de los entrypoints, parámetros, flags y comandos internos vive directamente en el repositorio `core-architecture-gh-workflows`. Mantener la skill alojada allí garantiza que cualquier evolución de los workflows se refleje de manera atómica en la skill sin desincronizaciones.
+## Elegí por dónde empezar
 
-## Cuándo usarla
+| Pieza | Qué resuelve | Escribe | Se instala con | Showcase | Instalación |
+|---|---|---|---|---|---|
+| **`scripts/install.sh`** | Traer la skill canónica y enlazarla en tus agentes | Tu `HOME` (cache y enlaces) | `./skills/install-unified-ci/scripts/install.sh` | [Ver el caso](docs/showcase.md#1-instalar-o-actualizar-la-skill) | [Instalar](docs/instalacion.md#1-instalar) |
+| **La skill** (en `core-architecture-gh-workflows`) | Evaluar un repo y migrarlo al CI unificado | Archivos de **tu** repo, en tu rama | la instala el script de arriba | [Ver el caso](docs/showcase.md#2-pedirle-al-agente-que-evalúe-un-repo) | [Instalar](docs/instalacion.md#3-primer-uso) |
 
-- Al incorporar un nuevo servicio o API para despliegue en Platform
-- Al estandarizar repositorios legados que usan workflows custom de test, build, lint o Sonar
-- Al auditar si un repositorio existente puede migrar al CI unificado sin fricción
-- Frases típicas:
-  > _"adoptá el CI unificado acá"_ · _"migrá este repo a unified CI"_ · _"revisá si este repo puede usar el CI unificado"_ · _"reemplazá los workflows viejos por el CI unificado"_
+## Un ejemplo: el instalador
 
-**Cuándo NO:**
-- Repositorios con deploys directos a AWS ECS/Lambda, GCP Cloud Run o Kubernetes que no utilicen Platform
-- Proyectos en lenguajes fuera del catálogo unificado (Rust, C++, Ruby, PHP)
-- Repositorios con matrices de testing obligatorias en macOS o Windows
+La salida del instalador es la del script real, corrido con un `HOME` falso y un `git` de prueba que no sale a la red; la
+conversación es una maqueta.
 
-## Instalación
+![Maqueta de Cursor: el agente corre install.sh y muestra los dos enlaces creados](docs/img/cursor-instalar.png)
 
-La skill vive en el repositorio `core-architecture-gh-workflows`. Podés instalarla en tu entorno de dos formas:
+## Qué documento leer
 
-### Opción 1: Mediante el script instalador (Recomendado)
+| Si querés… | Leé | Qué encontrás |
+|---|---|---|
+| **Instalarla y probarla, desde Cursor** | [Instalación y primer uso](docs/instalacion.md) | Todo con prompts: instalar, primer uso, actualizar |
+| **Instalarla comando por comando** | [Instalación detallada](docs/instalacion-detallada.md) | Requisitos, qué hace `install.sh` línea por línea, la instalación manual y cómo verificarla |
+| **Ver todo lo que hace** | [Showcase](docs/showcase.md) | Instalar, usarla, y qué protege y qué no |
+| **Consultar un detalle** | [Referencia](docs/referencia.md) | El README de la skill: principio, cuándo usarla, arquitectura y stacks soportados |
 
-Ejecutá el script de instalación incluido en este repositorio:
-
-```bash
-./skills/install-unified-ci/scripts/install.sh
-```
-
-El script descarga siempre la versión canónica de la skill directamente desde la rama `main` de `core-architecture-gh-workflows` en GitHub (vía sparse-checkout en `~/.cache/`) y crea los symlinks correspondientes.
-
-### Opción 2: Enlace manual
-
-Si ya tenés clonado `core-architecture-gh-workflows` en tu máquina:
-
-```bash
-# Para Codex, Copilot CLI, Gemini CLI y Open Multi-Agent Platform (OMP):
-ln -s "/ruta/a/core-architecture-gh-workflows/skills/install-unified-ci" ~/.agents/skills/install-unified-ci
-
-# Para Claude Code:
-mkdir -p ~/.claude/skills
-ln -s ../../.agents/skills/install-unified-ci ~/.claude/skills/install-unified-ci
-```
-
-Verificá que quedó instalada:
+## En tres comandos
 
 ```bash
-ls -l ~/.agents/skills/install-unified-ci/SKILL.md
+git clone git@github.com:josefigueredo/teamwayofwork.git && cd teamwayofwork
+./skills/install-unified-ci/scripts/install.sh                    # clona la skill en ~/.cache y la enlaza
+ls -l ~/.agents/skills/install-unified-ci/SKILL.md                 # comprueba que quedó
 ```
 
-## Cómo se invoca
+Requisitos: `git` y que tu máquina pueda clonar `https://github.com/josefigueredo/core-architecture-gh-workflows.git` (el script
+usa HTTPS y `set -e`: si el clon falla, corta sin enlazar nada). No se verificó si ese repo es público o privado.
 
-Una vez instalada, no hace falta invocarla manualmente con comandos complejos. Se activa sola cuando pedís migrar o evaluar el CI de un repositorio:
+## Desarrollo
 
-> _"adoptá el CI unificado"_ · _"migrá este proyecto a Unified CI"_ · _"revisá si podemos usar Unified CI acá"_
-
-Si querés forzarla explícitamente:
-
+```bash
+python3 tests/test_docs_links.py     # los links de estos docs, desde la raíz del repo
 ```
-/install-unified-ci
-```
-
-## Arquitectura de la skill
-
-La skill implementa el estándar de *progressive disclosure* de Agent Skills:
-- `SKILL.md`: Guía procedimental ágil de 5 pasos para evaluación, auditoría, generación, poda y reporte.
-- `references/migration-rules.md`: Reglas universales de decisión, matrices de incompatibilidad y políticas de preservación y poda de workflows.
-- `references/stacks/<stack>.md`: Módulos específicos por runtime con catálogos de parámetros, comandos de ciclo de vida y plantillas YAML canónicas (`ci.yml` y `publish.yml`).
-
-## Stacks soportados
-
-La skill cuenta con catálogos precomputados para los siguientes runtimes en `references/stacks/`:
-- **Node.js** (`references/stacks/node.md`): npm, yarn (v1 y v2+), pnpm, soporte de paquetes privados en GitHub Packages.
-- **Go** (`references/stacks/go.md`): detección de Dockerfile propio o plantillas UCI, soporte para `GOPRIVATE`, parámetros en mayúsculas.
-- **Maven** (`references/stacks/maven.md`): Java con baseline JDK 21, soporte de Testcontainers, publicación a GitHub Packages.
-- **Gradle** (`references/stacks/gradle.md`): Java & Kotlin con `gradlew`, plugin de SonarCloud y publicación de paquetes.
-- **Python** (`references/stacks/python.md`): uv, poetry, pipenv, pip, ruff, mypy, pytest con tolerancia a código de salida 5 (`NO_TESTS_COLLECTED`).
-- **Docker** (`references/stacks/docker.md`): contenedores puros sin buildpacks de lenguaje.
-- **Flutter** (`references/stacks/flutter.md`): Dart format, Flutter analyze, Flutter test con Melos o standalone, integración con Mobile Build Hub.
-- **Kong** (`references/stacks/kong.md`): validación y despliegue de configuración declarativa del gateway desde `./conf/**/*.yml`.
-- **Package Publishing**: publicación de librerías en GitHub Packages con validación SemVer (Node, Maven, Gradle).

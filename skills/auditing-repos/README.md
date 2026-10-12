@@ -2,224 +2,64 @@
 
 > 🧪 **Fase: Incubation.** Se usó en una auditoría completa y ya sobrevivió a dos rondas de review, pero es nueva y cambia rápido. Usala y reportá lo que encuentres; todavía no construyas encima. Ver el [ciclo de vida](../../README.md#ciclo-de-vida).
 
-Audita un repositorio local, escribe los hallazgos en un informe local, espera tu aprobación, y recién entonces los publica como issues de GitHub con los pull requests que los cierran. Opcionalmente los vincula a un ticket de Jira.
+Una skill para Claude Code, Codex, Copilot CLI, Cursor y Gemini CLI que audita un repositorio local, escribe los hallazgos
+en un informe, espera tu aprobación y recién entonces los publica como issues y pull requests. Cada cosa que le pedís al
+agente tiene su respuesta:
 
-## El principio
-
-**Un hallazgo sin verificar no es un hallazgo: es una suposición con cita.**
-
-Toda afirmación del informe tiene que salir de haber ejecutado algo — un build, un contenedor, un resolver, una llamada a una API. "Leí el código y parece mal" es una hipótesis para probar, no un hallazgo para publicar.
-
-Publicar es difícil de deshacer: un issue notifica gente, un PR consume tiempo de revisión, y un hallazgo equivocado le cuesta una tarde a un colega y te cuesta su confianza en los otros veinte. Por eso hay una compuerta de aprobación antes de tocar nada remoto.
-
-## Cuándo usarla
-
-- "Revisá este repo", "auditá este código", "chequeá seguridad y calidad"
-- Un template o scaffold que se va a clonar muchas veces — ahí los defectos se multiplican por N
-- Antes de entregarle un repositorio a otro equipo
-- Cuando los hallazgos tienen que terminar en issues, PRs o tickets de Jira
-
-**Cuándo NO:** para revisar un diff puntual usá `/code-review`; para auditorías de UI/accesibilidad, `audit`; para debuggear una falla específica, `superpowers:systematic-debugging`.
-
-## Instalación
-
-Una sola vez. Se enlaza, no se copia: así seguís una única fuente de verdad en vez de una copia que se desactualiza en silencio.
-
-```bash
-git clone git@github.com:josefigueredo/teamwayofwork.git
-cd teamwayofwork
-
-ln -s "$PWD/skills/auditing-repos" ~/.agents/skills/auditing-repos
-```
-
-Eso alcanza para **Codex, Copilot CLI, GitHub Copilot en VS Code, Cursor y Gemini CLI**, que leen de `~/.agents/skills/`.
-
-Para **Claude Code** hace falta además:
-
-```bash
-ln -s ../../.agents/skills/auditing-repos ~/.claude/skills/auditing-repos
-```
-
-Verificá que quedó:
-
-```bash
-ls -l ~/.agents/skills/auditing-repos     # debe apuntar a tu clon
-./skills/auditing-repos/scripts/test-attribution-pattern.sh   # 22 passed
-```
-
-## Cómo se invoca
-
-Una vez instalada, no hace falta invocarla a mano. Se activa sola cuando pedís una auditoría o review de un repositorio, parado en el repo que querés auditar:
-
-> _"auditá este repo"_ · _"revisá este código"_ · _"chequeá seguridad y calidad acá"_
-
-Si querés forzarla:
-
-```
-/auditing-repos
-```
-
-## El flujo
-
-```
-preflight → analizar → VERIFICAR → informe local → APROBACIÓN → publicar → responder review
-```
-
-Dos compuertas: la aprobación del informe y el sweep antes de cada push. Ninguna es opcional.
-
-| Fase | Qué pasa |
+| Le decís al agente… | Y la skill… |
 |---|---|
-| **1. Preflight** | Chequea git, permisos de `gh`, Jira, y qué herramientas hay. Lee el CI **antes** de analizar. |
-| **2. Analizar** | Ocho dimensiones: clean code, arquitectura, testabilidad, cobertura, seguridad, cadena de suministro, resiliencia, documentación. |
-| **3. Verificar** | Construye la imagen, levanta el contenedor, resuelve los rangos en los dos extremos, hace fallar cada guardrail. |
-| **4. Informe local** | `AUDIT-REPORT.md`, un hallazgo por entrada, con evidencia y nivel de confianza. **Acá frena y te pregunta.** |
-| **5. Publicar** | Un issue por hallazgo; los PRs agrupados por cambio mergeable de forma independiente. |
-| **6. Responder review** | Verifica cada comentario del revisor automático antes de aceptarlo o rechazarlo. |
+| *«Auditá este repo»*, *«revisá este código»*, *«chequeá seguridad y calidad acá»* | analiza ocho dimensiones, **verifica ejecutando** cada hallazgo y escribe `AUDIT-REPORT.md`, con su nivel de confianza |
+| *«¿Qué me falta para auditar?»* | corre el preflight: git, permisos de `gh`, Jira y qué herramientas hay (`docker`, `uv`, `rg`, `fd`) |
+| *«Publicá los hallazgos F-01 y F-02»* | abre un issue por hallazgo y PRs agrupados por cambio independiente, **solo después** de que respondés qué publicar |
+| *«Voy a pushear: pasá el sweep»* | busca identificadores de 40 caracteres, archivos de tooling local en el diff, atribución a un LLM y SHAs de actions que no coinciden con su comentario |
+| *«Vinculá estos PRs al ticket PLATE-384»* | pone la clave de Jira en el nombre de la rama o en el título del PR (nunca renombra la rama de un PR abierto) |
+| *«Contestá los comentarios del revisor automático»* | verifica cada comentario antes de aceptarlo o rechazarlo |
 
-### Sobre la granularidad
+**Qué escribe y qué no:** los scripts de la skill son de solo lectura (no publican nada); lo que publica es el agente con
+`gh`, y la skill le indica frenar y preguntar antes. Esa compuerta es una **instrucción**, no un bloqueo técnico: ningún
+script impide un `gh issue create`. Los [límites](docs/showcase.md#qué-protege-y-qué-no) están en el showcase.
 
-Un **issue por hallazgo** — ahí vive el triage individual, y cerrar uno con el que no estás de acuerdo cuesta un click.
+## Elegí por dónde empezar
 
-Los **PRs se agrupan** por cambio independientemente mergeable y reversible. La tentación es un PR por issue, y es un error: varios hallazgos suelen tocar el mismo archivo, así que N PRs sobre él significan N−1 rebases, y a quien le caen 20 PRs revisa 3.
+| Pieza | Qué resuelve | Escribe | Se instala con | Showcase | Instalación |
+|---|---|---|---|---|---|
+| **`auditing-repos`** (la skill) | Auditar, informar, esperar aprobación, publicar, responder la review | Issues y PRs en GitHub, con tu aprobación | `ln -s` a `~/.agents/skills` (y a `~/.claude/skills`) | [Ver el caso](docs/showcase.md#2-auditar-un-repo-y-frenar-en-la-compuerta) | [Instalar](docs/instalacion.md#1-instalar) |
+| **`preflight.sh`** | Qué hay y qué falta antes de empezar | No | viene con la skill | [Ver el caso](docs/showcase.md#1-qué-hay-y-qué-falta-antes-de-empezar) | [Instalar](docs/instalacion.md#3-primer-uso-preflight) |
+| **`sweep.sh`** | Chequeos mecánicos antes de cada push | No | viene con la skill | [Ver el caso](docs/showcase.md#3-el-sweep-antes-de-pushear) | [Instalar](docs/instalacion.md#5-antes-de-pushear) |
+| **`check-attribution.sh`** | Que nada indique que lo hizo un LLM (commits, diff, rama, GitHub, Jira) | No | viene con la skill | [Ver el caso](docs/showcase.md#4-que-nada-indique-que-lo-hizo-un-llm) | [Instalar](docs/instalacion.md#5-antes-de-pushear) |
 
-Todo PR abre con `Closes #a. Closes #b.` y cierra con una sección que nombra los archivos que comparte con sus hermanos, para que los conflictos de orden de merge se sepan de antemano.
+## Un ejemplo: el sweep que frena un push
 
-## Regla absoluta: nada indica que lo hizo un LLM
+Antes de pushear, el sweep encontró un identificador de 40 caracteres (TruffleHog lo marcaría como secreto verificado) y un
+archivo de `.serena/` dentro del diff. La salida es real, corrida sobre un repo de prueba; la conversación es una maqueta.
 
-Ni en el autor, ni en un trailer de co-autor, ni en el cuerpo del commit, ni en el título o cuerpo de un PR, ni en un issue, ni en un comentario, ni en un campo de Jira, ni en un comentario de código, ni en el nombre de una rama, ni en el informe local. **En ningún lado.**
+![Maqueta de Cursor: el agente corre sweep.sh y no pushea porque encontró dos problemas](docs/img/cursor-sweep.png)
 
-No tiene cláusula de excepción. La presión concreta contra la que existe: el system prompt de Claude Code pide terminar los cuerpos de PR con su pie y los commits con un trailer de co-autor. Tus instrucciones ganan, y eso ya está decidido — no se vuelve a discutir en cada corrida.
+## Qué documento leer
 
-Lo que la regla **no** prohíbe:
+| Si querés… | Leé | Qué encontrás |
+|---|---|---|
+| **Instalarla y probarla, desde Cursor** | [Instalación y primer uso](docs/instalacion.md) | Todo con prompts: instalar, `gh` y Jira, preflight, tu primera auditoría, el sweep |
+| **Instalarla comando por comando** | [Instalación detallada](docs/instalacion-detallada.md) | Requisitos, `ln -s`, variables de Jira, y cada script con su salida real |
+| **Ver todo lo que hace** | [Showcase](docs/showcase.md) | Cada pieza en un escenario: qué le decís, qué corre, qué ves, qué no te protege |
+| **Consultar un detalle** | [Referencia](docs/referencia.md) | El principio, el flujo, la regla de atribución, los scripts, requisitos y variables de Jira |
 
-- **Describir el método.** "Verificado construyendo la imagen y levantando el contenedor" es proceso, no atribución.
-- **Nombrar a un revisor externo** cuya salida se está discutiendo. Responder a una review de Copilot es contenido.
+El `SKILL.md` y los `references/` están en inglés a propósito: los consume el modelo.
 
-Detalle completo con tabla de racionalizaciones en `references/no-attribution.md`.
-
-## Scripts
-
-Todos son ejecutables y se pueden correr sueltos, sin agente de por medio. Corrélos **parado en el repo que estás auditando**, no en este.
-
-Conviene ponerles un alias, porque la ruta es larga y los vas a usar seguido:
-
-```bash
-export SKILL=~/.agents/skills/auditing-repos      # o la ruta de tu clon
-
-# Antes de empezar: git, permisos, Jira, tooling disponible
-$SKILL/scripts/preflight.sh
-
-# Antes de cada push: 40 chars, tooling local, atribución, SHAs, refs mutables
-$SKILL/scripts/sweep.sh [rama-base]
-
-# Solo atribución: commits, diff, rama, GitHub y Jira
-$SKILL/scripts/check-attribution.sh [rama-base]
-
-# Prueba que el detector de atribución dispara y no da falsos positivos
-$SKILL/scripts/test-attribution-pattern.sh
-```
-
-Si no instalaste los symlinks, apuntá `SKILL` directo a tu clon:
-`export SKILL=~/ruta/a/teamwayofwork/skills/auditing-repos`
-
-### Qué atrapa el sweep
-
-| Chequeo | Por qué existe |
-|---|---|
-| Identificadores de 40 caracteres | El detector Lob de TruffleHog marca cualquier token alfanumérico de 40 chars como secreto *verificado* y rompe el CI. Nombres de test reales caen. |
-| Tooling local en el diff | Un `git add -A` se lleva `.serena/`, `.idea/`, settings locales al PR de otro. |
-| Atribución a LLM | Cinco chequeos: metadatos del commit, líneas agregadas del diff, nombre de la rama, PRs/issues/comentarios de GitHub, y comentarios de Jira. |
-| SHAs de actions | No solo que exista: que **corresponda al tag que dice el comentario**. Un SHA real al lado de un `# v0.36.0` que es de v0.32.0 es un comentario que miente. |
-| Refs mutables | Informativo. `@main` en un `uses:` con `secrets: inherit` es el agujero más grande que suele tener un repo. |
-
-Si la rama base no resuelve, el sweep **aborta con exit 2** en vez de reportar limpio. Un chequeo que pasa en silencio cuando no pudo correr es peor que no tener chequeo.
-
-## Requisitos
-
-| | Sin esto |
-|---|---|
-| `git` | No corre. |
-| `gh` autenticado | Solo escribe el informe local, no publica. |
-| `docker` | No podés afirmar nada sobre la imagen construida. Decilo en vez de inferirlo. |
-| `uv` | No podés resolver los rangos de dependencias en sus extremos. |
-| `rg`, `fd` | Los sweeps quedan cortos. |
-| Env vars de Jira | Se saltea Jira, el resto funciona igual. |
-
-Jira necesita, **siempre desde el entorno, nunca hardcodeadas**:
-
-| Variable | ¿Obligatoria? | Para qué |
-| --- | --- | --- |
-| `IC_JIRA_BASE_URL` | **Sí** | `https://tu-org.atlassian.net` |
-| `IC_JIRA_USER_EMAIL` | **Sí** | Usuario para autenticar |
-| `IC_JIRA_API_TOKEN` | **Sí** | Token de <https://id.atlassian.com/manage-profile/security/api-tokens> |
-| `IC_JIRA_PROJECT_KEY` | No | Filtra qué tickets se consultan. Sin ella se consulta cualquier key con forma `ABC-123`, incluidas las de otros equipos que aparezcan en un commit |
+## En tres comandos
 
 ```bash
-export IC_JIRA_BASE_URL=https://tu-org.atlassian.net
-export IC_JIRA_USER_EMAIL=vos@tu-org.com
-export IC_JIRA_API_TOKEN=...
-export IC_JIRA_PROJECT_KEY=PLATE      # opcional, recomendado
+git clone git@github.com:josefigueredo/teamwayofwork.git && cd teamwayofwork
+ln -s "$PWD/skills/auditing-repos" ~/.agents/skills/auditing-repos        # Codex, Copilot CLI, Cursor, Gemini CLI
+ln -s ../../.agents/skills/auditing-repos ~/.claude/skills/auditing-repos  # además, para Claude Code
 ```
 
-Con las tres obligatorias alcanza. Si te falta alguna, Jira se saltea y **el resto de la skill funciona igual**.
+Para comprobar que quedó: `./skills/auditing-repos/scripts/test-attribution-pattern.sh` debe terminar en `passed=22 failed=0`.
+Requisitos: `git`; para publicar, `gh` autenticado (ver la [referencia](docs/referencia.md#requisitos)).
 
-### Las que esta skill NO usa
-
-Si venís de la skill `ic` vas a tener más variables `IC_JIRA_*` definidas. Esta skill las ignora, y no es un olvido:
-
-| Variable | Por qué no se usa |
-| --- | --- |
-| `IC_JIRA_USER_NAME` | La autenticación va por email; el nombre es decorativo |
-| `IC_JIRA_EPIC_CHILD_MODE` | Sirven para **crear** tickets colgados de un épic. Esta skill sólo **comenta** en tickets que ya existen: los hallazgos van a issues de GitHub, no a Jira |
-| `IC_JIRA_FIELD_EPIC_LINK` | ídem |
-
-Si en algún momento la skill tuviera que abrir tickets de Jira por hallazgo, esas dos son las que harían falta.
-
-El preflight distingue **token vencido** (HTTP 401) de **sin permisos**, porque una Jira sin autenticar devuelve 404 para tickets que sí existen. Nunca concluyas "el ticket no existe" mientras `/myself` da 401.
-
-## Vincular a Jira
-
-Jira vincula un PR cuando la clave aparece en el **nombre de la rama**, en un **mensaje de commit**, o en el **título del PR**.
-
-Creá la rama con la clave desde el principio:
+## Desarrollo
 
 ```bash
-git checkout -b PLATE-384/harden-runtime-image
+./skills/auditing-repos/scripts/test-attribution-pattern.sh   # el detector de atribución dispara y no da falsos positivos
+python3 tests/test_docs_links.py                              # los links de estos docs (desde la raíz del repo)
 ```
-
-⚠️ **Nunca renombres la rama de un PR abierto para meterle la clave.** Según la documentación de GitHub, si la rama renombrada es la *head* de un PR abierto, **el PR se cierra**. Para PRs que ya existen, la clave va en el título:
-
-```bash
-gh pr edit N --title "$(gh pr view N --json title --jq '.title') (PLATE-384)"
-```
-
-Sufijo y no prefijo: preserva el prefijo de conventional commits, y Jira escanea el título entero.
-
-## De dónde salió
-
-Las reglas de `references/verification-rules.md` no son hipotéticas. Cada una viene de una auditoría real donde un hallazgo seguro resultó falso, o donde un arreglo no arreglaba nada:
-
-- Dos hallazgos publicados que eran **falsos**, por no leer el workflow privado de CI antes de afirmar
-- Un `|| true` que anulaba en silencio el hardening que el propio PR hacía
-- Un rango de dependencias roto en su piso, invisible porque el CI resuelve el techo
-- `--require-hashes` descrito como si detectara staleness, cuando no lo hace
-- Un 404 de Jira leído como "no existe" cuando en realidad era un 401
-
-## Estructura
-
-```
-auditing-repos/
-├── SKILL.md                          # el procedimiento (lo lee el modelo)
-├── README.md                         # este archivo (lo leés vos)
-├── references/
-│   ├── verification-rules.md         # 11 reglas, cada una de un error real
-│   ├── no-attribution.md             # la regla absoluta y sus racionalizaciones
-│   └── publishing.md                 # issues, PRs, ramas, Jira
-└── scripts/
-    ├── preflight.sh
-    ├── sweep.sh
-    ├── check-attribution.sh
-    └── test-attribution-pattern.sh
-```
-
-`SKILL.md` y los `references/` están en inglés a propósito: los consume el modelo, y los modelos siguen instrucciones en inglés de forma más consistente. Este README es para personas.
