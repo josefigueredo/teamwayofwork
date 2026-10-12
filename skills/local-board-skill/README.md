@@ -12,9 +12,9 @@ evidencia de Git, y sincronizarlo con Jira solo después de revisar un plan. Cad
 | *«Relacioná estos commits y specs con las tareas»*, *«reconciliá la evidencia histórica»* | arma el grafo de relaciones, lo valida y rechaza nodos sueltos antes de llegar a Jira |
 | *«Preparame el plan de sync con Jira»* | genera un plan (dry run) con un checksum, sin escribir en Jira |
 | *«Aplicá el plan que aprobé»* | verifica el plan guardado y el grafo, y recién ahí escribe en Jira |
-| *«Limpiá los links remotos con `.git`»* | borra de Jira los links remotos mal formados (⚠ este comando **no** pasa por el plan) |
+| *«Limpiá los links remotos con `.git`»* | primero lista los links remotos mal formados que borraría; borra solo si se lo pedís con `--apply` |
 
-**Lo que escribe en Jira es solo `--apply-plan` y la limpieza de links**; todo lo demás es local. La aprobación es una
+**Lo que escribe en Jira es solo `--apply-plan` y la limpieza de links con `--apply`**; todo lo demás es local. La aprobación es una
 práctica de la skill (guardar el plan, revisarlo, aplicar ese mismo plan), no una ventana ni un bloqueo: el [showcase](docs/showcase.md#qué-protege-y-qué-no)
 explica los límites.
 
@@ -26,7 +26,7 @@ explica los límites.
 | **`inventory_git.py` y el grafo** | Evidencia de Git, relaciones y validación | No | viene con la skill | [Ver el caso](docs/showcase.md#2-relacionar-commits-con-el-board) | [Instalar](docs/instalacion.md#4-evidencia-de-git) |
 | **`sync.sh --save-plan`** | Plan de sincronización (dry run) | Lee, necesita credenciales | viene con la skill | [Ver el caso](docs/showcase.md#3-preparar-el-plan-de-sync) | [Instalar](docs/instalacion.md#2-credenciales-de-jira) |
 | **`sync.sh --apply-plan`** | Aplicar el plan aprobado | Escribe | viene con la skill | [Ver el caso](docs/showcase.md#4-aplicar-el-plan-aprobado) | [Instalar](docs/instalacion.md#5-plan-de-sync-y-aprobación) |
-| **`purge_bad_remote_links.py`** | Quitar links remotos con `.git` | Borra, sin plan | viene con la skill | [Ver el caso](docs/showcase.md#5-limpiar-links-remotos-mal-formados) | [Instalar](docs/instalacion.md#2-credenciales-de-jira) |
+| **`purge_bad_remote_links.py`** | Quitar links remotos con `.git` | Lee; borra solo con `--apply` | viene con la skill | [Ver el caso](docs/showcase.md#5-limpiar-links-remotos-mal-formados) | [Instalar](docs/instalacion.md#2-credenciales-de-jira) |
 
 ## Un ejemplo: preparar el plan sin credenciales
 

@@ -88,12 +88,19 @@ Si un `create` falla a mitad de camino, lo creado queda registrado localmente; s
 
 ## 5. Limpiar links remotos mal formados
 
-**Pieza:** `purge_bad_remote_links.py` · **Escribe en Jira:** **borra, sin plan ni dry run.** *No se corrió.*
+**Pieza:** `purge_bad_remote_links.py` · **Escribe en Jira:** solo con `--apply`; sin esa bandera solo lee.
 
-Recorre los issues del board y borra los links remotos cuya URL termina en `.git` o contiene `.git/`. A diferencia de la
-sincronización, **no tiene `--save-plan`, ni confirmación, ni modo de prueba**: corre directo con tus credenciales sobre
-todos los issues del board que tengan `jira_key`. Pedile al agente que no lo corra sin que vos lo hayas pedido
-explícitamente, y tené presente que no se puede deshacer desde acá.
+Recorre los issues del board que tengan `jira_key`, lee sus links remotos con tus credenciales y marca los que tienen una URL
+que termina en `.git` o contiene `.git/`. **Por defecto solo muestra el plan**: lista qué borraría y no cambia nada. Borra
+únicamente si le pasás `--apply`.
+
+![Terminal con el modo plan de purge_bad_remote_links.py (lista, no borra) y con --apply (borra), contra un Jira falso](img/terminal-purge.png)
+
+*La salida es **real**, pero corrida con el cliente de Jira reemplazado por uno de prueba (un link malo entre tres), como hace
+el test de la skill: no se tocó ningún Jira. Con un Jira real, el modo plan hace lecturas (GET) y necesita credenciales.*
+
+Con `--apply` no hay confirmación ni paso intermedio: borra enseguida, y desde acá no se puede deshacer. Corré primero el plan,
+revisá la lista y recién entonces pedile al agente (o corré vos) el `--apply`.
 
 ---
 
@@ -103,6 +110,7 @@ explícitamente, y tené presente que no se puede deshacer desde acá.
 |---|---|
 | Crear duplicados en Jira | Busca por el marcador exacto y adopta un único candidato que coincida en proyecto, tipo, resumen y label |
 | Aplicar un plan desactualizado | `--apply-plan` verifica el checksum del plan y del grafo |
+| Borrar links remotos sin querer | `purge_bad_remote_links.py` solo lista lo que borraría salvo que se le pase `--apply` |
 | Un grafo roto | Los scripts rechazan nodos sueltos y evidencia sin resolver |
 | Inventar URLs | Las URLs de commits y PRs se derivan solo de remotes de Git verificados |
 | Credenciales en el repo | `init_board.py` deja un `sync/.gitignore` que ignora `.env` |
@@ -110,7 +118,7 @@ explícitamente, y tené presente que no se puede deshacer desde acá.
 | **No** te protege de… | Por qué |
 |---|---|
 | Aplicar sin que nadie revise el plan | La «aprobación» es una práctica de la skill: `--apply-plan` solo comprueba el checksum, no pide un clic ni una confirmación |
-| El borrado de links de Jira | `purge_bad_remote_links.py` no tiene plan ni dry run |
+| Borrar de más con `--apply` | `purge_bad_remote_links.py --apply` borra sin pedir confirmación; la protección es haber revisado antes el plan que imprime sin `--apply` |
 | Un mal agrupamiento funcional | Decidir qué commit va a qué asset es interpretación; ante ambigüedad material, la skill pide parar y consultarte |
 
 **Cuando algo falla:** los errores de configuración cortan antes de tocar Jira (`missing JIRA_EMAIL / JIRA_API_TOKEN`,

@@ -108,7 +108,7 @@ corrí: necesita Jira).
 | `rebuild_index.py` | Regenera el índice del board | No |
 | `sync.sh --save-plan` | Plan (dry run) con checksum | Lee |
 | `sync.sh --apply-plan` | Aplica el plan verificado | Escribe |
-| `purge_bad_remote_links.py` | Borra links remotos con `.git` | Borra, sin plan |
+| `purge_bad_remote_links.py` | Lista los links remotos con `.git` que borraría; los borra solo con `--apply` | Lee; con `--apply`, borra |
 
 El orden y el criterio de cada modo (bootstrap, desde el último sync, reconciliación histórica) están en la
 [referencia](referencia.md#el-contrato-del-board) y, en detalle, en el `SKILL.md`.
