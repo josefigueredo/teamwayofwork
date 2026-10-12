@@ -1,6 +1,6 @@
 # local-board-skill
 
-> 🚧 **Fase: Beta.** Se usa de verdad, todavía se ajusta con el uso. Apoyate y avisá si rompe. Ver el [ciclo de vida](../../README.md#ciclo-de-vida).
+> 🚧 **Fase: Beta.** Se usa de verdad, todavía se ajusta con el uso. Apoyate y avisá si rompe. Ver el [ciclo de vida](../../../README.md#ciclo-de-vida).
 
 Mantiene un board de trabajo local en Markdown — épics, historias, tareas y sub-tareas — trazado contra la evidencia de Git, y lo sincroniza con Jira sólo después de una aprobación explícita.
 
@@ -42,11 +42,16 @@ Un board instanciado necesita:
 
 ## Configuración de Jira
 
-Copiá la plantilla y completá tus credenciales; nunca commiteés el resultado:
+Completá tus credenciales en `<board-dir>/sync/.env`; nunca commiteés ese archivo:
 
 ```bash
-cp scripts/.env.example <board-dir>/sync/.env
+cp scripts/.env.example <board-dir>/sync/.env   # solo si tu board no se creó con init_board.py
 ```
+
+> **Nota (corregida respecto de la versión anterior de este README).** `init_board.py` ya crea `<board-dir>/sync/.env`
+> a partir de esa plantilla, y un `sync/.gitignore` que lo ignora, así que el `cp` solo hace falta si el board se armó
+> a mano. Las variables que lee `sync_board.py` son `JIRA_EMAIL`, `JIRA_API_TOKEN` (o `JIRA_TOKEN`) y, para la URL,
+> `JIRA_CLOUD_ID` (si está, usa `api.atlassian.com`) o `JIRA_BASE_URL` / `JIRA_URL` (HTTPS obligatorio).
 
 ## Scripts
 
