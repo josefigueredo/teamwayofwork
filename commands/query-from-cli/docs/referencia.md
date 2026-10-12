@@ -1,6 +1,6 @@
 # query-from-cli
 
-> 🚧 **Fase: Beta.** Se usa de verdad para consultas rápidas del día a día, pero el prompt y las opciones todavía se ajustan con el uso. Apoyate y avisá si algo rompe. Ver el [ciclo de vida](../../README.md#ciclo-de-vida).
+> 🚧 **Fase: Beta.** Se usa de verdad para consultas rápidas del día a día, pero el prompt y las opciones todavía se ajustan con el uso. Apoyate y avisá si algo rompe. Ver el [ciclo de vida](../../../README.md#ciclo-de-vida).
 
 Un `q` para hacerle una pregunta rápida a un modelo de IA sin abrir una sesión interactiva ni gastar contexto de un agente. Corre el CLI que elijas (`claude`, `codex`, `copilot` o `gemini`) en modo liviano —sin MCPs, plugins ni skills— y devuelve solo la respuesta, en texto plano listo para leer en la terminal.
 
@@ -21,11 +21,18 @@ git clone git@github.com:josefigueredo/teamwayofwork.git
 cd teamwayofwork
 
 # opción A: alias en tu shell
-echo 'alias q="$PWD/commands/query-from-cli/query.sh"' >> ~/.zshrc
+echo "alias q=\"bash $PWD/commands/query-from-cli/query.sh\"" >> ~/.zshrc
 
 # opción B: symlink a un directorio que ya esté en tu PATH
+chmod +x commands/query-from-cli/query.sh
 ln -s "$PWD/commands/query-from-cli/query.sh" ~/.local/bin/q
 ```
+
+> **Nota (corregida respecto de la versión anterior de este README).** `query.sh` está versionado sin permiso de
+> ejecución (modo `100644`), así que ejecutarlo directo da `permission denied` (código 126): por eso la opción A usa
+> `bash` y la opción B necesita el `chmod +x`. Y el alias va escrito con comillas dobles de afuera para que `$PWD` se
+> expanda al escribirlo; con comillas simples quedaba un `$PWD` literal en `~/.zshrc` que apuntaba a la carpeta donde
+> abrieras cada terminal.
 
 Verificá que quedó:
 
@@ -39,7 +46,8 @@ q "decime hola"
 q [--model=claude|codex|copilot|gemini] <prompt>
 ```
 
-Sin `--model`, usa `copilot`.
+Sin `--model`, usa `copilot` (`DEFAULT_MODEL="copilot"` en el script). El texto de ayuda que imprime `q` sin argumentos dice
+«Defaults to claude»: es un error de ese texto, no del comportamiento.
 
 ```bash
 q "command to rank folders by last modified recursively"
@@ -65,6 +73,11 @@ Como es de una sola pasada, si tu pregunta es muy ambigua el modelo no se queda 
 
 ```
 query-from-cli/
-├── query.sh    # el script (lo corrés vos, o lo aliaseás a `q`)
-└── README.md   # este archivo
+├── query.sh              # el script (lo corrés vos, o lo aliaseás a `q`)
+├── README.md             # el índice
+└── docs/
+    ├── instalacion.md            # desde Cursor, con prompts
+    ├── instalacion-detallada.md  # comando por comando
+    ├── showcase.md               # casos de uso
+    └── referencia.md             # este archivo
 ```
