@@ -1,7 +1,7 @@
 ---
 name: auditing-repos
 description: Use when asked to review, audit, or assess a local repository for code quality, architecture, testability, coverage, security, documentation or resilience — especially when the findings should become GitHub issues and pull requests, or be tracked on a Jira board.
-compatibility: "Requires git. Publishing issues and pull requests needs an authenticated gh CLI; without it the audit report is only written locally. Jira tracking is optional and uses credentials from environment variables."
+compatibility: "Requires git. Publishing issues and pull requests needs an authenticated gh CLI; without it the audit report is only written locally. Jira tracking is optional and reads JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN (and optionally JIRA_PROJECT_KEY) from the environment."
 ---
 
 # Auditing Repos
@@ -153,4 +153,5 @@ When a comment is right, say so plainly and fix it. When it is wrong, show the e
 - `scripts/preflight.sh` — environment and permissions
 - `scripts/sweep.sh` — pre-push checks (delegates the attribution check)
 - `scripts/check-attribution.sh` — commits, diff, branch, PRs, issues, comments, Jira
+- `scripts/jira-env.sh` — sourced by the two scripts above to resolve the Jira credentials
 - `scripts/test-attribution-pattern.sh` — proves the detector fires and does not false-positive

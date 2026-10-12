@@ -26,7 +26,7 @@
 | `docker` | Afirmar algo sobre la imagen construida | No podés afirmar nada sobre la imagen: hay que decirlo |
 | `uv` | Resolver rangos de dependencias en sus extremos | No podés comprobar los rangos |
 | `rg`, `fd` | Los sweeps | Quedan cortos |
-| Variables `IC_JIRA_*` | Jira | Se saltea Jira |
+| Variables `JIRA_*` | Jira | Se saltea Jira |
 
 Los scripts usan `rg` (ripgrep): `sweep.sh` y `check-attribution.sh` lo llaman directo.
 
@@ -57,14 +57,14 @@ Prueba que el detector de atribución **dispara** en los casos malos y **no da f
 Opcionales. Siempre desde el entorno, nunca escritas en un archivo del repo:
 
 ```bash
-export IC_JIRA_BASE_URL=https://tu-empresa.atlassian.net
-export IC_JIRA_USER_EMAIL=vos@tu-empresa.com
-export IC_JIRA_API_TOKEN=...          # https://id.atlassian.com/manage-profile/security/api-tokens
-export IC_JIRA_PROJECT_KEY=PLATE      # opcional: solo se consultan tickets de este proyecto
+export JIRA_BASE_URL=https://tu-empresa.atlassian.net
+export JIRA_EMAIL=vos@tu-empresa.com
+export JIRA_API_TOKEN=...          # https://id.atlassian.com/manage-profile/security/api-tokens
+export JIRA_PROJECT_KEY=PLATE      # opcional: solo se consultan tickets de este proyecto
 ```
 
-> Estos scripts solo leen los nombres `IC_JIRA_*`; no aceptan los genéricos `JIRA_*`. La [referencia](referencia.md#requisitos)
-> explica qué otras variables `IC_JIRA_*` ignora a propósito.
+> Son los mismos nombres que usan `local-board-skill` y `jira-team-kit`, así que una sola configuración del shell sirve para las tres.
+> La [referencia](referencia.md#requisitos) explica qué otras variables de Jira ignora a propósito.
 
 El token se crea sin alcance, porque los scripts llaman a `<tu-sitio>.atlassian.net` con auth básica (`curl -u email:token`).
 Un 401 en `/myself` significa token vencido o revocado, **no** falta de permisos: nunca concluyas «el ticket no existe»

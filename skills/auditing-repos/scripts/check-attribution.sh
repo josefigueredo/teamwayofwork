@@ -84,11 +84,12 @@ else
   echo "· skipped published artifacts (no gh, or not a GitHub repo)"
 fi
 
+. "$(dirname "${BASH_SOURCE[0]}")/jira-env.sh"
 # 5. Jira comments authored by this account on referenced tickets.
 # Three outcomes that must never look alike: checked and clean, nothing to
 # check, and could not check. The previous version printed the same ✓ for all
 # three — including with a dead token, while naming the ticket it had not read.
-if [ -n "${IC_JIRA_BASE_URL:-}" ] && [ -n "${IC_JIRA_API_TOKEN:-}" ] && [ -n "${IC_JIRA_USER_EMAIL:-}" ]; then
+if [ -n "${JIRA_BASE_URL:-}" ] && [ -n "${JIRA_API_TOKEN:-}" ] && [ -n "${JIRA_EMAIL:-}" ]; then
   keys=$(git log "$BASE"..HEAD --format='%B' 2>/dev/null | rg -o '[A-Z][A-Z0-9]+-[0-9]+' | sort -u)
   [ -z "$keys" ] && keys=$(gh pr list --state all --limit 30 --json title --jq '.[].title' 2>/dev/null | rg -o '[A-Z][A-Z0-9]+-[0-9]+' | sort -u)
   [ -z "$keys" ] && keys=$(git rev-parse --abbrev-ref HEAD | rg -o '[A-Z][A-Z0-9]+-[0-9]+' | sort -u)
@@ -96,15 +97,15 @@ if [ -n "${IC_JIRA_BASE_URL:-}" ] && [ -n "${IC_JIRA_API_TOKEN:-}" ] && [ -n "${
   # The regex matches any ABC-123 shape, including references to other teams'
   # projects and the occasional false positive. When PROJECT_KEY is set, only
   # look up tickets that belong to it.
-  if [ -n "${IC_JIRA_PROJECT_KEY:-}" ] && [ -n "$keys" ]; then
-    keys=$(printf '%s\n' $keys | rg "^${IC_JIRA_PROJECT_KEY}-[0-9]+$" || true)
+  if [ -n "${JIRA_PROJECT_KEY:-}" ] && [ -n "$keys" ]; then
+    keys=$(printf '%s\n' $keys | rg "^${JIRA_PROJECT_KEY}-[0-9]+$" || true)
   fi
 
   if [ -z "$keys" ]; then
     echo "· no Jira keys found in commits, PR titles or branch name — nothing checked"
   else
-    jcode=$(curl -s -o /dev/null -w '%{http_code}' -u "$IC_JIRA_USER_EMAIL:$IC_JIRA_API_TOKEN" \
-            "$IC_JIRA_BASE_URL/rest/api/3/myself" 2>/dev/null || echo 000)
+    jcode=$(curl -s -o /dev/null -w '%{http_code}' -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
+            "$JIRA_BASE_URL/rest/api/3/myself" 2>/dev/null || echo 000)
     if [ "$jcode" != "200" ]; then
       # Not a pass. Tickets are referenced and cannot be read: unverifiable is
       # a failure, not a clean bill of health.
@@ -113,8 +114,8 @@ if [ -n "${IC_JIRA_BASE_URL:-}" ] && [ -n "${IC_JIRA_API_TOKEN:-}" ] && [ -n "${
     else
       jfound=0; jseen=0
       for k in $keys; do
-        raw=$(curl -s -u "$IC_JIRA_USER_EMAIL:$IC_JIRA_API_TOKEN" \
-              "$IC_JIRA_BASE_URL/rest/api/2/issue/$k/comment?maxResults=100" 2>/dev/null)
+        raw=$(curl -s -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
+              "$JIRA_BASE_URL/rest/api/2/issue/$k/comment?maxResults=100" 2>/dev/null)
         n=$(printf '%s' "$raw" | python3 -c "import sys,json
 try:
     d=json.load(sys.stdin); print(len(d.get('comments',[])) if 'comments' in d else -1)

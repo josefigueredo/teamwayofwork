@@ -93,10 +93,11 @@ class DocsTest(unittest.TestCase):
     def test_auditing_repos_documents_exactly_the_jira_variables_its_scripts_read(self):
         scripts = "".join(p.read_text(encoding="utf-8") for p in (ROOT / "skills/auditing-repos/scripts").glob("*.sh"))
         docs = "".join(p.read_text(encoding="utf-8") for p in pages("skills/auditing-repos"))
-        for name in set(re.findall(r"\bIC_JIRA_[A-Z_]+\b", docs)):
-            if name in ("IC_JIRA_USER_NAME", "IC_JIRA_EPIC_CHILD_MODE", "IC_JIRA_FIELD_EPIC_LINK"):
-                continue  # documented as ignored on purpose
+        self.assertNotIn("IC_JIRA", docs)  # the IC_* alias is read by the scripts but never announced
+        for name in set(re.findall(r"\bJIRA_[A-Z_]+\b", docs)):
             self.assertIn(name, scripts, f"{name} is documented but no script reads it")
+        for name in ("JIRA_BASE_URL", "JIRA_EMAIL", "JIRA_API_TOKEN"):
+            self.assertIn(name, docs)
 
     def test_local_board_docs_use_the_generic_jira_names(self):
         docs = "".join(p.read_text(encoding="utf-8") for p in pages("skills/local-board-skill"))

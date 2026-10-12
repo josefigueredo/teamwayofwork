@@ -53,16 +53,15 @@ Esto lo hacés vos, en una terminal.
 **a) `gh`.** Sin `gh` autenticado la skill solo escribe el informe local: no publica. Corré `gh auth login` y seguí los pasos.
 
 **b) Jira (opcional).** Si querés que la skill comente en tickets y revise sus comentarios, guardá tres variables en tu
-`~/.zshrc`, con un editor, no por el chat. Son las únicas que leen los scripts (hoy no aceptan los nombres genéricos
-`JIRA_*`):
+`~/.zshrc`, con un editor, no por el chat. Son las únicas que leen los scripts, y son las mismas que usan las otras skills de Jira:
 
 ```bash
-export IC_JIRA_BASE_URL="https://tu-empresa.atlassian.net"
-export IC_JIRA_USER_EMAIL="vos@tu-empresa.com"
-export IC_JIRA_API_TOKEN="el-token-que-creaste"   # https://id.atlassian.com/manage-profile/security/api-tokens
+export JIRA_BASE_URL="https://tu-empresa.atlassian.net"
+export JIRA_EMAIL="vos@tu-empresa.com"
+export JIRA_API_TOKEN="el-token-que-creaste"   # https://id.atlassian.com/manage-profile/security/api-tokens
 ```
 
-Opcionalmente `IC_JIRA_PROJECT_KEY` (por ejemplo `PLATE`) para que solo se consulten tickets de tu proyecto. Después cerrá
+Opcionalmente `JIRA_PROJECT_KEY` (por ejemplo `PLATE`) para que solo se consulten tickets de tu proyecto. Después cerrá
 Cursor del todo y abrilo de nuevo. Si falta alguna, Jira se saltea y **el resto de la skill funciona igual**.
 
 ## 3. Primer uso: preflight
@@ -124,8 +123,8 @@ Como se enlazó, alcanza con traer lo nuevo del clon:
 | El agente no ofrece la skill | Se abrió la sesión antes de crear los enlaces | Abrí una sesión nueva; verificá que `~/.agents/skills/auditing-repos` apunte a tu clon |
 | Funciona en Cursor pero no en Claude Code | Falta el enlace de `~/.claude/skills/` | Pedile al agente el segundo `ln -s` del paso 1 |
 | `gh auth NO` en el preflight | `gh` no está autenticado | `gh auth login` (paso 2); mientras tanto solo hay informe local |
-| `jira skipped (missing: …)` | Faltan variables `IC_JIRA_*` | Paso 2b; o ignoralo si no usás Jira |
-| `jira auth HTTP 401` | Token vencido o revocado (no es un problema de permisos) | Creá otro token y cambiá `IC_JIRA_API_TOKEN` |
+| `jira skipped (missing: …)` | Faltan variables `JIRA_*` | Paso 2b; o ignoralo si no usás Jira |
+| `jira auth HTTP 401` | Token vencido o revocado (no es un problema de permisos) | Creá otro token y cambiá `JIRA_API_TOKEN` |
 | `base ref '…' does not resolve` (código 2) | El sweep no encuentra la rama base | Pasala explícita: `sweep.sh <rama-base>` |
 
 ## De dónde sale cada captura
