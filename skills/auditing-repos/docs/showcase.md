@@ -111,7 +111,7 @@ verifica cada comentario del revisor automático antes de aceptarlo o rechazarlo
 | Un agente que publique sin preguntar | La compuerta es una instrucción de `SKILL.md`; los scripts no publican ni bloquean un `gh issue create` |
 | Un hallazgo verificado mal | Verificar es trabajo del agente y de quien lee el informe: revisalo antes de responder qué publicar |
 | Atribución en superficies que no se leen | Solo se revisa lo que el script puede alcanzar; el resto figura como salteado |
-| Jira con otros nombres de variable | Los scripts leen solo `IC_JIRA_*` |
+| Jira con otros nombres de variable | Los scripts leen solo `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` y `JIRA_PROJECT_KEY` |
 
 **Cuando algo falla:** un script que no puede evaluar sale con código distinto de 0 o marca la superficie como salteada. Un 404
 de Jira con un token muerto es un 401 disfrazado: el preflight distingue «token vencido» de «sin permisos».

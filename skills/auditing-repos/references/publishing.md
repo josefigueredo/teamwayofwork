@@ -76,18 +76,18 @@ Base branches get retargeted on rename; **head branches close the PR**. For PRs 
 Env vars, never hardcoded. Three are required; the fourth narrows the search:
 
 ```
-IC_JIRA_BASE_URL      required
-IC_JIRA_USER_EMAIL    required
-IC_JIRA_API_TOKEN     required
-IC_JIRA_PROJECT_KEY   optional — restricts lookups to this project. Without it,
-                      any ABC-123-shaped string in a commit gets looked up,
-                      including other teams' keys and the occasional false match.
+JIRA_BASE_URL      required
+JIRA_EMAIL         required
+JIRA_API_TOKEN     required
+JIRA_PROJECT_KEY   optional — restricts lookups to this project. Without it,
+                   any ABC-123-shaped string in a commit gets looked up,
+                   including other teams' keys and the occasional false match.
 ```
 
-`IC_JIRA_USER_NAME`, `IC_JIRA_EPIC_CHILD_MODE` and `IC_JIRA_FIELD_EPIC_LINK` may
-exist in the environment (the `ic` skill sets them) and are deliberately unused:
-the last two configure *creating* epic-linked tickets, and this skill only
-comments on tickets that already exist.
+Other Jira settings may exist in the environment (a user name, an epic child
+mode, an epic link field) and are deliberately unused: the last two configure
+*creating* epic-linked tickets, and this skill only comments on tickets that
+already exist.
 
 Read a token from the clipboard (`pbpaste`) if the env var is stale. **Never write it to a file, never echo it** — print length and prefix only.
 
@@ -105,9 +105,9 @@ Use **API v2 with wiki markup**, not v3. v3 requires Atlassian Document Format �
 
 ```bash
 python3 -c "import json,sys;json.dump({'body':open(sys.argv[1]).read()},sys.stdout)" body.wiki > p.json
-curl -s -u "$IC_JIRA_USER_EMAIL:$IC_JIRA_API_TOKEN" \
+curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
   -X POST -H "Content-Type: application/json" --data @p.json \
-  "$IC_JIRA_BASE_URL/rest/api/2/issue/PLATE-384/comment"
+  "$JIRA_BASE_URL/rest/api/2/issue/PLATE-384/comment"
 ```
 
 Wiki markup: `h2.` headings, `{{code}}`, `||header||`/`|cell|` tables, `[text|url]` links, `*bold*`.
@@ -115,8 +115,8 @@ Wiki markup: `h2.` headings, `{{code}}`, `||header||`/`|cell|` tables, `[text|ur
 **Verify it rendered**, not just that it posted — a 201 with literal `h2.` on screen is a failure:
 
 ```bash
-curl -s -u "$IC_JIRA_USER_EMAIL:$IC_JIRA_API_TOKEN" \
-  "$IC_JIRA_BASE_URL/rest/api/2/issue/KEY/comment/ID?expand=renderedBody" \
+curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+  "$JIRA_BASE_URL/rest/api/2/issue/KEY/comment/ID?expand=renderedBody" \
   | python3 -c "import sys,json;r=json.load(sys.stdin)['renderedBody'];print('h2 ok:','<h2' in r,'| leak:','h2.' in r)"
 ```
 

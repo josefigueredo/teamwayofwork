@@ -149,31 +149,31 @@ Jira necesita, **siempre desde el entorno, nunca hardcodeadas**:
 
 | Variable | ¿Obligatoria? | Para qué |
 | --- | --- | --- |
-| `IC_JIRA_BASE_URL` | **Sí** | `https://tu-org.atlassian.net` |
-| `IC_JIRA_USER_EMAIL` | **Sí** | Usuario para autenticar |
-| `IC_JIRA_API_TOKEN` | **Sí** | Token de <https://id.atlassian.com/manage-profile/security/api-tokens> |
-| `IC_JIRA_PROJECT_KEY` | No | Filtra qué tickets se consultan. Sin ella se consulta cualquier key con forma `ABC-123`, incluidas las de otros equipos que aparezcan en un commit |
+| `JIRA_BASE_URL` | **Sí** | `https://tu-org.atlassian.net` |
+| `JIRA_EMAIL` | **Sí** | Usuario para autenticar |
+| `JIRA_API_TOKEN` | **Sí** | Token de <https://id.atlassian.com/manage-profile/security/api-tokens> |
+| `JIRA_PROJECT_KEY` | No | Filtra qué tickets se consultan. Sin ella se consulta cualquier key con forma `ABC-123`, incluidas las de otros equipos que aparezcan en un commit |
 
 ```bash
-export IC_JIRA_BASE_URL=https://tu-org.atlassian.net
-export IC_JIRA_USER_EMAIL=vos@tu-org.com
-export IC_JIRA_API_TOKEN=...
-export IC_JIRA_PROJECT_KEY=PLATE      # opcional, recomendado
+export JIRA_BASE_URL=https://tu-org.atlassian.net
+export JIRA_EMAIL=vos@tu-org.com
+export JIRA_API_TOKEN=...
+export JIRA_PROJECT_KEY=PLATE      # opcional, recomendado
 ```
 
 Con las tres obligatorias alcanza. Si te falta alguna, Jira se saltea y **el resto de la skill funciona igual**.
 
 ### Las que esta skill NO usa
 
-Si venís de la skill `ic` vas a tener más variables `IC_JIRA_*` definidas. Esta skill las ignora, y no es un olvido:
+Si tu entorno trae otras variables de Jira (nombre de usuario, modo de hijos de épic, campo de enlace al épic), esta skill las
+ignora, y no es un olvido:
 
-| Variable | Por qué no se usa |
+| Dato | Por qué no se usa |
 | --- | --- |
-| `IC_JIRA_USER_NAME` | La autenticación va por email; el nombre es decorativo |
-| `IC_JIRA_EPIC_CHILD_MODE` | Sirven para **crear** tickets colgados de un épic. Esta skill sólo **comenta** en tickets que ya existen: los hallazgos van a issues de GitHub, no a Jira |
-| `IC_JIRA_FIELD_EPIC_LINK` | ídem |
+| Nombre de usuario | La autenticación va por email; el nombre es decorativo |
+| Modo de hijos de épic y campo de enlace al épic | Sirven para **crear** tickets colgados de un épic. Esta skill sólo **comenta** en tickets que ya existen: los hallazgos van a issues de GitHub, no a Jira |
 
-Si en algún momento la skill tuviera que abrir tickets de Jira por hallazgo, esas dos son las que harían falta.
+Si en algún momento la skill tuviera que abrir tickets de Jira por hallazgo, esos dos datos son los que harían falta.
 
 El preflight distingue **token vencido** (HTTP 401) de **sin permisos**, porque una Jira sin autenticar devuelve 404 para tickets que sí existen. Nunca concluyas "el ticket no existe" mientras `/myself` da 401.
 
@@ -220,6 +220,7 @@ auditing-repos/
     ├── preflight.sh
     ├── sweep.sh
     ├── check-attribution.sh
+    ├── jira-env.sh                   # lo cargan preflight y check-attribution: resuelve JIRA_*
     └── test-attribution-pattern.sh
 ```
 
