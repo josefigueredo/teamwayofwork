@@ -23,7 +23,7 @@ script impide un `gh issue create`. Los [límites](docs/showcase.md#qué-protege
 
 | Pieza | Qué resuelve | Escribe | Se instala con | Showcase | Instalación |
 |---|---|---|---|---|---|
-| **`auditing-repos`** (la skill) | Auditar, informar, esperar aprobación, publicar, responder la review | Issues y PRs en GitHub, con tu aprobación | `ln -s` a `~/.agents/skills` (y a `~/.claude/skills`) | [Ver el caso](docs/showcase.md#2-auditar-un-repo-y-frenar-en-la-compuerta) | [Instalar](docs/instalacion.md#1-instalar) |
+| **`auditing-repos`** (la skill) | Auditar, informar, esperar aprobación, publicar, responder la review | Issues y PRs en GitHub, con tu aprobación | `ln -s` a `~/.agents/skills` (y a `~/.claude/skills`), o `npx skills add` (copia; [límites](docs/instalacion-detallada.md#instalar-solo-la-skill-con-npx-skills-add)) | [Ver el caso](docs/showcase.md#2-auditar-un-repo-y-frenar-en-la-compuerta) | [Instalar](docs/instalacion.md#1-instalar) |
 | **`preflight.sh`** | Qué hay y qué falta antes de empezar | No | viene con la skill | [Ver el caso](docs/showcase.md#1-qué-hay-y-qué-falta-antes-de-empezar) | [Instalar](docs/instalacion.md#3-primer-uso-preflight) |
 | **`sweep.sh`** | Chequeos mecánicos antes de cada push | No | viene con la skill | [Ver el caso](docs/showcase.md#3-el-sweep-antes-de-pushear) | [Instalar](docs/instalacion.md#5-antes-de-pushear) |
 | **`check-attribution.sh`** | Que nada indique que lo hizo un LLM (commits, diff, rama, GitHub, Jira) | No | viene con la skill | [Ver el caso](docs/showcase.md#4-que-nada-indique-que-lo-hizo-un-llm) | [Instalar](docs/instalacion.md#5-antes-de-pushear) |
@@ -53,6 +53,8 @@ git clone git@github.com:josefigueredo/teamwayofwork.git && cd teamwayofwork
 ln -s "$PWD/skills/auditing-repos" ~/.agents/skills/auditing-repos        # Codex, Copilot CLI, Cursor, Gemini CLI
 ln -s ../../.agents/skills/auditing-repos ~/.claude/skills/auditing-repos  # además, para Claude Code
 ```
+
+Si no querés enlazar, `DISABLE_TELEMETRY=1 npx skills@1.7.2 add . --skill auditing-repos -a cursor -a claude-code -g -y` instala solo esta skill ([especificación](https://agentskills.io/specification)), pero como copia: no se actualiza con `git pull`.
 
 Para comprobar que quedó: `./skills/auditing-repos/scripts/test-attribution-pattern.sh` debe terminar en `passed=22 failed=0`.
 Requisitos: `git`; para publicar, `gh` autenticado (ver la [referencia](docs/referencia.md#requisitos)).

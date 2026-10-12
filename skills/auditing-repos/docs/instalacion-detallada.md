@@ -6,14 +6,14 @@
 | Paso | Qué hacés |
 |---|---|
 | [1. Requisitos](#1-requisitos) | Comprobar `git`, `gh` y las herramientas opcionales |
-| [2. Instalar](#2-instalar) | Clonar y enlazar |
+| [2. Instalar](#2-instalar) | Clonar y enlazar, o `npx skills add` |
 | [3. Comprobar la instalación](#3-comprobar-la-instalación) | Correr el test del detector de atribución |
 | [4. Credenciales de Jira](#4-credenciales-de-jira) | Tres variables, opcionales |
 | [5. Primera corrida](#5-primera-corrida) | `preflight.sh`, `sweep.sh`, `check-attribution.sh` |
 
 > **Sobre las capturas.** Las terminales salen de ejecutar los scripts de este repo sobre un repo de prueba
 > (`~/mi-proyecto`), con `GH_CONFIG_DIR` apuntando a una carpeta vacía (así `gh` figura sin autenticar) y sin variables
-> de Jira: no tocan GitHub ni Jira. Las rutas están acortadas.
+> de Jira: no tocan GitHub ni Jira. Las rutas están acortadas. La captura de `npx skills add` es la salida real del CLI en un `HOME` falso.
 
 ---
 
@@ -41,6 +41,42 @@ ln -s ../../.agents/skills/auditing-repos ~/.claude/skills/auditing-repos  # ade
 
 Se enlaza y no se copia: una sola fuente de verdad. `ln -s` falla si el destino ya existe; en ese caso verificá con
 `ls -l ~/.agents/skills/auditing-repos` que apunte a tu clon.
+
+### Instalar solo la skill con `npx skills add`
+
+Alternativa al `ln -s`: el CLI [`skills`](https://github.com/vercel-labs/skills) instala **solo la carpeta de esta skill**
+(la que cumple la [especificación de Agent Skills](https://agentskills.io/specification)), sin que enlaces nada a mano.
+Necesita Node (`npx`) y el clon del repo; se corre desde la raíz del clon:
+
+```bash
+DISABLE_TELEMETRY=1 npx skills@1.7.2 add . --skill auditing-repos -a cursor -a claude-code -g -y
+```
+
+![Terminal con npx skills add instalando auditing-repos en ~/.agents/skills y enlazándola desde ~/.claude/skills](img/terminal-npx-skills.png)
+
+Lo que se comprobó corriéndolo con la versión 1.7.2, un `HOME` falso y la ruta del clon como fuente:
+
+| Qué | Resultado |
+|---|---|
+| Descubrimiento | `--list` encuentra `auditing-repos` y `local-board-skill` en `skills/<nombre>/`; no lista nada más del repo |
+| Dónde queda | Una **copia** en `~/.agents/skills/auditing-repos` (la lee Cursor) y un enlace `~/.claude/skills/auditing-repos -> ../../.agents/skills/auditing-repos` para Claude Code. Con `--copy` el enlace pasa a ser otra copia |
+| Qué se copia | La carpeta completa de la skill (`SKILL.md`, `references/`, `scripts/`, `docs/`), idéntica al original y con los scripts ejecutables |
+| Funciona desde ahí | `preflight.sh`, `sweep.sh`, `test-attribution-pattern.sh` y `test-sweep-pinned-shas.sh` corren desde la copia instalada y dan lo mismo que desde el clon (`sweep.sh` con un `gh` falso); las rutas del `SKILL.md` (`~/.agents/skills/auditing-repos/scripts/…` y `references/…`) resuelven |
+
+Límites, para que no te sorprendan:
+
+- **No se actualiza con `git pull`.** Lo instalado es una copia: después de traer cambios al clon, repetí el mismo comando.
+  `npx skills update` no la revisa: con una fuente local dice `cannot be checked automatically (Local path)` y te indica volver a
+  correr `add`.
+- **Si ya la enlazaste a mano, `add` te reemplaza el enlace por una copia** (el clon no se toca, pero deja de ser la fuente
+  de verdad). Si preferís seguir con `ln -s`, no corras este comando.
+- `DISABLE_TELEMETRY=1` apaga la telemetría anónima del CLI, según su [README](https://github.com/vercel-labs/skills#telemetry).
+- Usá siempre una versión fija (`skills@1.7.2`): lo descrito arriba es lo que se vio en esa versión.
+- No se probó la fuente remota privada (`git@github.com:josefigueredo/…`), solo la ruta local; por eso el comando usa el clon.
+
+> **Las skills de `harness/` (`jtk`, `wow`, `arq`, `pbmcp`, `ric`) no se instalan así.** Cada repo trae un `install.sh` que además
+> deja un CLI en `~/.local/bin`, registra un servidor MCP o instala un hook, y `skills add` solo cubre carpetas de skills.
+> Sus guías explican el camino correcto.
 
 ## 3. Comprobar la instalación
 
