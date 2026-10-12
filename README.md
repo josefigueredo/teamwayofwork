@@ -63,6 +63,28 @@ ln -s ../../.agents/skills/local-board-skill ~/.claude/skills/local-board-skill
 
 A diferencia de las skills, un comando es un script suelto: no se enlaza a `~/.agents/skills/`, se agrega al `PATH` o se aliasea. Cada uno tiene su `README.md` con el detalle de instalación.
 
+## Harness
+
+Los repos del Harness (skills, CLIs y MCPs del flujo Product Brain + Spec-Kit + Jira) viven en su propio repositorio y acá se asocian como submódulos de git bajo [`harness/`](harness/). Cada submódulo queda fijado a un commit concreto: actualizarlo es una decisión explícita, no algo que cambia solo.
+
+| Repo | Fase | Para qué |
+| --- | --- | --- |
+| [`WayOfWork`](harness/WayOfWork/) | 🧪 Incubation | Skills atómicas y el CLI `wow` para trabajar con Product Brain, Spec-Kit y modelos fuertes sin perder la telemetría de Spec-Kit |
+| [`arq-review`](harness/arq-review/) | 🧪 Incubation | Revisión de Arquitectura de pedidos `PRY-AAAA-NNNN`: skills `arq-manager` y `arq-architect` |
+| [`product-brain-mcp`](harness/product-brain-mcp/) | 🧪 Incubation | MCP local `pbmcp` y skill `product-brain` para armar iniciativas, PRD, RFC y épicas y exportarlas a Jira |
+| [`run-in-cursor`](harness/run-in-cursor/) | 🚧 Beta | Mandarle un prompt o slash command al agente de Cursor desde otro agente, registrado como uso real de Cursor |
+| [`jira-team-kit`](harness/jira-team-kit/) | 🚧 Beta | Skill `jira-team-kit`: crea una épica de Jira y la mantiene espejada como kanban local |
+
+Los repos son privados (`josefigueredo`), así que hace falta acceso por SSH. Para traerlos al clonar:
+
+```bash
+git clone --recurse-submodules git@github.com:josefigueredo/teamwayofwork.git
+# o, en un clone existente:
+git submodule update --init --recursive
+```
+
+Para llevar un submódulo a lo último de su `main`: `git submodule update --remote harness/<nombre>`, y commitear el nuevo puntero.
+
 ## Principios que atraviesan todo lo que hay acá
 
 **Lo que no se ejecuta, no se afirma.** Un hallazgo sin verificar es una suposición con cita. Vale para una auditoría, para un comentario en un PR y para una línea de documentación.

@@ -1,0 +1,18 @@
+[submodule "harness/WayOfWork"]
+	path = harness/WayOfWork
+	url = git@github.com:josefigueredo/wow.git
+[submodule "harness/arq-review"]
+	path = harness/arq-review
+	url = git@github.com:josefigueredo/arch-review.git
+[submodule "harness/product-brain-mcp"]
+	path = harness/product-brain-mcp
+	url = git@github.com:josefigueredo/product-brain-skill-mcp.git
+[submodule "harness/run-in-cursor"]
+	path = harness/run-in-cursor
+	url = git@github.com:josefigueredo/run-in-cursor.git
+[submodule "harness/jira-team-kit"]
+	path = harness/jira-team-kit
+	url = git@github.com:josefigueredo/jira-team-kit.git
+[submodule "harness/confluence-team-kit"]
+	path = harness/confluence-team-kit
+	url = git@github.com:josefigueredo/confluence-skill-mcp.git
