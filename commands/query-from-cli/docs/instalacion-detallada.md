@@ -32,17 +32,17 @@
 git clone git@github.com:josefigueredo/teamwayofwork.git && cd teamwayofwork
 
 # opción A: alias (la ruta se expande ahora porque el comando va entre comillas dobles)
-echo "alias q=\"bash $PWD/commands/query-from-cli/query.sh\"" >> ~/.zshrc
+echo "alias q=\"$PWD/commands/query-from-cli/query.sh\"" >> ~/.zshrc
 
 # opción B: symlink en un directorio de tu PATH
-chmod +x commands/query-from-cli/query.sh
 ln -s "$PWD/commands/query-from-cli/query.sh" ~/.local/bin/q
 ```
 
-Dos trampas, ambas verificadas:
+Dos cosas a tener en cuenta, ambas verificadas:
 
-1. **`query.sh` no es ejecutable en el repo** (`100644`). Ejecutarlo directo da `permission denied` (código 126). Por eso la
-   opción A usa `bash` y la B necesita `chmod +x` (que además deja un cambio de modo sin commitear en tu clon).
+1. **`query.sh` ya es ejecutable en el repo** (modo `100755`): el alias y el symlink lo llaman directo, sin `bash` ni `chmod +x`.
+   Lo comprobamos corriendo `q --model=foo hola` por la ruta directa y por un symlink: los dos dan `Unknown model: foo` y salen con
+   código 1. (Si tu clon es anterior a que se le diera permiso de ejecución, verás `permission denied`, código 126: actualizalo.)
 2. **Las comillas del alias.** Con `echo 'alias q="$PWD/…"'` (comillas simples) se escribe un `$PWD` literal en `~/.zshrc`, que zsh
    expande al abrir cada terminal: apunta a la carpeta donde estés, no al clon. Con comillas dobles de afuera, como arriba, queda
    la ruta completa.
@@ -55,8 +55,8 @@ q --model=foo "hola"      # no llama a ningún modelo
 
 ![Terminal con Unknown model: foo (choose: claude, codex, copilot, gemini) y el código de salida 1](img/terminal-error.png)
 
-Sin argumentos, `q` imprime su ayuda y sale con código 1. Ojo con esa ayuda: dice «Defaults to claude», pero el modelo por defecto
-es `copilot` (`DEFAULT_MODEL="copilot"`).
+Sin argumentos, `q` imprime su ayuda y sale con código 1. La ayuda termina de decir «Defaults to copilot», que es el modelo por
+defecto (`DEFAULT_MODEL="copilot"`).
 
 ## 4. Qué recibe cada CLI
 

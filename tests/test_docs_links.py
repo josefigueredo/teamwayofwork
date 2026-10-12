@@ -9,6 +9,7 @@ the scripts really read.
 """
 from __future__ import annotations
 
+import os
 import re
 import unittest
 from pathlib import Path
@@ -108,7 +109,11 @@ class DocsTest(unittest.TestCase):
     def test_query_docs_give_an_alias_that_works_and_the_real_default_model(self):
         docs = "".join(p.read_text(encoding="utf-8") for p in pages("commands/query-from-cli"))
         self.assertNotIn("alias q=\"$PWD/commands", docs)  # literal $PWD in single quotes broke the alias
-        self.assertIn('alias q=\\"bash $PWD/commands/query-from-cli/query.sh\\"', docs)
+        self.assertIn('alias q=\\"$PWD/commands/query-from-cli/query.sh\\"', docs)
+        self.assertNotIn("bash $PWD/commands", docs)  # query.sh is executable now: the alias calls it directly
+        self.assertTrue(os.access(ROOT / "commands/query-from-cli/query.sh", os.X_OK))
+        for stale in ("Defaults to claude", "100644"):
+            self.assertNotIn(stale, docs)
         script = (ROOT / "commands/query-from-cli/query.sh").read_text(encoding="utf-8")
         self.assertIn('DEFAULT_MODEL="copilot"', script)
         self.assertIn("copilot", (ROOT / "commands/query-from-cli/docs/instalacion.md").read_text(encoding="utf-8"))

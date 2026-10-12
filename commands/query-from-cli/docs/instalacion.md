@@ -39,8 +39,8 @@ Necesitás `bash` y tu clon de `teamwayofwork` abierto en Cursor. Pedile:
 
 Qué pasó:
 
-- **Un alias**: `alias q="bash <ruta-a-tu-clon>/commands/query-from-cli/query.sh"`. Usa `bash` porque `query.sh` está versionado
-  **sin permiso de ejecución**: sin `bash` (o un `chmod +x`), ejecutarlo directo da `permission denied`.
+- **Un alias**: `alias q="<ruta-a-tu-clon>/commands/query-from-cli/query.sh"`. Apunta directo a `query.sh`, que está versionado
+  **con permiso de ejecución** (`100755`): no hace falta `bash` ni `chmod +x`.
 - **La ruta quedó fija** (se expandió al escribirla). Si mudás el clon de carpeta, actualizá el alias.
 - **`jq`** solo hace falta para `--model=codex`. Si falta, pedile `brew install jq`.
 
@@ -85,7 +85,7 @@ El alias apunta al archivo dentro de tu clon, así que no hace falta reinstalar.
 | Síntoma | Causa probable | Qué hacer |
 |---|---|---|
 | `q: command not found` | La terminal se abrió antes de crear el alias | Abrí una terminal nueva |
-| `permission denied` (código 126) | Ejecutás `query.sh` directo y no tiene permiso de ejecución | Usá el alias con `bash`, o `chmod +x` |
+| `permission denied` (código 126) | Tu clon es anterior a que `query.sh` tuviera permiso de ejecución | Actualizá el clon (`git pull`) |
 | `Unknown model: …` | `--model` con un valor que no es `claude`, `codex`, `copilot` ni `gemini` | Corregí el valor |
 | El modelo no responde | CLI sin instalar o sin sesión | Paso 2 |
 | `jq: command not found` con `--model=codex` | Falta `jq` | `brew install jq` |

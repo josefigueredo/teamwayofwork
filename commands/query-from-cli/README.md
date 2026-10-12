@@ -34,7 +34,7 @@ El agente deja el alias y avisa del único paso que es tuyo. La conversación es
 | Si querés… | Leé | Qué encontrás |
 |---|---|---|
 | **Instalarlo desde Cursor** | [Instalación y primer uso](docs/instalacion.md) | Prompts para instalar y comprobar, y el paso manual (autenticar el modelo) |
-| **Instalarlo comando por comando** | [Instalación detallada](docs/instalacion-detallada.md) | Requisitos, alias o symlink, el permiso de ejecución y qué argumentos recibe cada CLI |
+| **Instalarlo comando por comando** | [Instalación detallada](docs/instalacion-detallada.md) | Requisitos, alias o symlink y qué argumentos recibe cada CLI |
 | **Ver todo lo que hace** | [Showcase](docs/showcase.md) | Cada uso en un escenario, qué protege y qué no |
 | **Consultar un detalle** | [Referencia](docs/referencia.md) | El README original: cuándo usarlo, uso, requisitos |
 
@@ -42,7 +42,7 @@ El agente deja el alias y avisa del único paso que es tuyo. La conversación es
 
 ```bash
 git clone git@github.com:josefigueredo/teamwayofwork.git && cd teamwayofwork
-echo "alias q=\"bash $PWD/commands/query-from-cli/query.sh\"" >> ~/.zshrc      # abrí una terminal nueva después
+echo "alias q=\"$PWD/commands/query-from-cli/query.sh\"" >> ~/.zshrc      # abrí una terminal nueva después
 q "decime hola"                                                                  # necesita el CLI del modelo autenticado
 ```
 

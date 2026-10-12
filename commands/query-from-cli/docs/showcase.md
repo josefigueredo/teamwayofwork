@@ -77,8 +77,6 @@ Cada modelo recibe el mismo prompt con sus propias opciones de modo liviano:
 | **No** te protege de… | Por qué |
 |---|---|
 | Que el modelo use herramientas | «Liviano» no es «sin herramientas»: `copilot` se lanza con `--allow-all-tools`, y el prompt solo le pide usar herramientas si la pregunta lo exige. Es una petición, no un bloqueo |
-| Un `permission denied` al instalar | `query.sh` está versionado sin permiso de ejecución: usá `bash` en el alias o `chmod +x` |
-| Una ayuda desactualizada | El texto de `q` sin argumentos dice «Defaults to claude»; el defecto real es `copilot` |
 | Una respuesta incorrecta | Es la respuesta de un modelo: verificala antes de ejecutar lo que te sugiere |
 
 **Cuando algo falla:** un CLI sin instalar o sin sesión hace que ese `--model` no corra; con `--model=codex` sin `jq`, no se puede
