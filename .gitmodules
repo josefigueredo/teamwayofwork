@@ -16,3 +16,9 @@
 [submodule "harness/confluence-team-kit"]
 	path = harness/confluence-team-kit
 	url = git@github.com:josefigueredo/confluence-skill-mcp.git
+[submodule "harness/agentic-docs-check"]
+	path = harness/agentic-docs-check
+	url = git@github.com:josefigueredo/agentic-docs-check.git
+[submodule "harness/api-contract-check"]
+	path = harness/api-contract-check
+	url = git@github.com:josefigueredo/api-contract-check.git
