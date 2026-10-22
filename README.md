@@ -31,6 +31,8 @@ Una fase no se gana por antigüedad sino por uso: algo pasa a `Standardized` cua
 
 Cada skill tiene su `README.md` en castellano. El `SKILL.md` y los `references/` están en inglés a propósito: los consume el modelo.
 
+Los episodios del taller de skills de team sobre estas skills están publicados en [GitHub Pages](https://potential-spork-5y95zpo.pages.github.io/) (sitio privado: entrás con tu cuenta de la organización). El guion vive en [`workshop/`](workshop/).
+
 ### Tests automatizados
 
 Las skills que incluyen scripts Python se validan en GitHub Actions por grupos independientes. Actualmente corre el grupo [`local-board-skill`](skills/local-board-skill/) con su suite bajo `skills/local-board-skill/tests/` y exige al menos 90% de cobertura sobre sus scripts:
