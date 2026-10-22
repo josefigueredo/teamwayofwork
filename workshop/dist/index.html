@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taller de skills de team</title>
+<!-- Template: build inlines tokens.css at CSS and the episode list (already escaped) at LIST.
+     No scripts, no external resources: the only absolute links are the guides on GitHub. -->
+<style>
+/* Every colour, font and size of the stage. When Cursor or the terminal change, edit here.
+   Sizes are for the fixed 1600x900 canvas (the stage scales it). */
+:root {
+  /* canvas */
+  --ws-w: 1600px;
+  --ws-h: 900px;
+
+  /* fonts */
+  --ws-font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ws-font-mono: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+  --ws-fs: 15px;          /* Cursor body text */
+  --ws-fs-sm: 13.5px;     /* sidebar, tabs, footers */
+  --ws-fs-xs: 12.5px;     /* section labels, ages */
+  --ws-fs-h4: 19px;       /* say #### heading */
+  --ws-fs-mono: 13.5px;   /* code, chips, zsh */
+  --ws-fs-term: 16px;     /* personal terminal and Claude Code */
+  --ws-lh: 1.6;
+  --ws-lh-mono: 1.55;
+  --ws-lh-tight: 1.3;     /* user label block */
+  --ws-lh-list: 2;        /* file tree, Open Tabs */
+  --ws-caret-w: .6em;     /* terminal caret block */
+
+  /* spacing and radii */
+  --ws-gap: 12px;
+  --ws-pad: 18px;
+  --ws-pad-sm: 8px;
+  --ws-pad-xs: 4px;
+  --ws-radius: 12px;
+  --ws-radius-sm: 6px;
+  --ws-radius-xs: 4px;
+  --ws-line: 1px;
+
+  /* window chrome */
+  --ws-dot: 12px;
+  --ws-dot-r: #ff5f57;
+  --ws-dot-y: #febc2e;
+  --ws-dot-g: #28c840;
+
+  /* Cursor, light theme */
+  --ws-c-bg: #ffffff;
+  --ws-c-side: #f3f3f3;
+  --ws-c-line: #e6e6e6;
+  --ws-c-tx: #1d1d1f;
+  --ws-c-tx2: #3a3a3c;
+  --ws-c-mut: #7a7a7a;
+  --ws-c-faint: #a0a0a0;
+  --ws-c-sel: #e3e3e3;
+  --ws-c-chip: #f2f2f2;
+  --ws-c-code: #efefef;
+  --ws-c-send-bg: #111111;
+  --ws-c-send-fg: #ffffff;
+  --ws-c-plus: #1a7f37;
+  --ws-c-avatar: #8a7b6b;
+  --ws-c-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+  --ws-c-sidebar-w: 250px;
+  --ws-c-right-w: 680px;
+  --ws-c-tree-w: 230px;
+  --ws-c-zsh-h: 400px;
+  --ws-c-opentabs-w: 270px;
+  --ws-c-top-h: 40px;
+  --ws-c-tabs-h: 40px;
+  --ws-c-avatar-s: 26px;
+  --ws-c-send-s: 22px;
+  --ws-c-preview-fs: 28px;
+
+  /* zsh prompt segments inside Cursor (light) */
+  --ws-z-bg: #ffffff;
+  --ws-z-tx: #1d1d1f;
+  --ws-z-apple-bg: #ffffff;
+  --ws-z-apple-fg: #111111;
+  --ws-z-path-bg: #1f4f8f;
+  --ws-z-path-fg: #ffffff;
+  --ws-z-git-bg: #2a8a76;
+  --ws-z-git-fg: #ffffff;
+  --ws-z-sys-bg: #8e1f6f;
+  --ws-z-sys-fg: #ffffff;
+  --ws-z-time-bg: transparent;
+  --ws-z-time-fg: #1d1d1f;
+  --ws-z-fill: #7a7a7a;
+  --ws-z-path-icon: #ffffff;
+  --ws-z-sys-icon: #ffffff;
+  --ws-z-time-icon: #1d1d1f;
+  --ws-z-ok: #2ea043;
+  --ws-z-out: #3a3a3c;
+
+  /* personal terminal (dark) */
+  --ws-t-bg: #252830;
+  --ws-t-bar: #2d3139;
+  --ws-t-bar-fg: #c9ced8;
+  --ws-t-tx: #d7dae0;
+  --ws-t-mut: #8b919c;
+  --ws-t-cmd: #79c0ff;
+  --ws-t-ok: #7ee000;
+  --ws-t-caret: #d7dae0;
+  --ws-t-apple-bg: #d0d4db;
+  --ws-t-apple-fg: #111111;
+  --ws-t-path-bg: #86a6cc;
+  --ws-t-path-fg: #ffffff;
+  --ws-t-path-icon: #ffffff;
+  --ws-t-git-bg: #2f8f8a;
+  --ws-t-git-fg: #ffffff;
+  --ws-t-sys-bg: #b994c9;
+  --ws-t-sys-fg: #1b1b22;
+  --ws-t-sys-icon: #1b1b22;
+  --ws-t-time-bg: #d6d9df;
+  --ws-t-time-fg: #111111;
+  --ws-t-time-icon: #111111;
+  --ws-t-fill: #5d6370;
+  --ws-t-bar-h: 34px;
+  --ws-seg-slant: 8px;
+  --ws-fill-w: 2px;       /* dotted fill between prompt segments */
+  --ws-icon-s: 1em;       /* prompt icons (folder, house, clock), inline SVG */
+  --ws-icon-gap: .4em;    /* space between a prompt icon and its text */
+  --ws-icon-drop: -.14em; /* vertical-align of prompt icons on the text baseline */
+
+  /* Claude Code tab */
+  --ws-cc-accent: #d97757;
+  --ws-cc-ok: #3fb950;
+  --ws-cc-user: #ffa657;  /* the person's turn, as in the cc-* mockups */
+  --ws-cc-bang: #f778ba;  /* a `!` command the person runs in bash mode */
+  --ws-cc-box: #5d6370;
+  --ws-cc-gutter: 2ch;    /* width of the ⏺ / ⎿ / > gutter */
+
+  /* browser window of a page step */
+  --ws-p-w: 92%;
+  --ws-p-h: 90%;
+  --ws-p-bg: #ffffff;
+  --ws-p-bar: #f1f1f3;
+
+  /* macOS approval window */
+  --ws-a-scrim: rgba(0, 0, 0, .28);
+  --ws-a-bg: #ececec;
+  --ws-a-tx: #1d1d1f;
+  --ws-a-mut: #4a4a4c;
+  --ws-a-line: #d2d2d2;
+  --ws-a-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+  --ws-a-w: 560px;
+  --ws-a-radius: 14px;
+  --ws-a-icon: 56px;
+  --ws-a-icon-bg: #2d6cdf;
+  --ws-a-btn-bg: #ffffff;
+  --ws-a-btn-fg: #1d1d1f;
+  --ws-a-ok-bg: #0a6cf0;
+  --ws-a-ok-fg: #ffffff;
+  --ws-a-fs-title: 17px;
+  --ws-a-fs: 14px;
+  --ws-a-lh: 1.45;
+  /* the tool's own approval panel (alert.js): light or dark like macOS, because its page follows the system too */
+  --ws-r-bg: #ececec;
+  --ws-r-tx: #1d1d1f;
+  --ws-r-bar-tx: #4a4a4c;
+  --ws-r-btn-bg: #ffffff;
+  --ws-r-btn-line: #c8c8c8;
+  --ws-r-bar: 28px;         /* title bar */
+  --ws-r-foot: 58px;        /* the button bar under the page (alert.js `bar`) */
+  --ws-r-btn-h: 28px;
+  --ws-r-btn-cancel: 90px;
+  --ws-r-btn-ok: 130px;
+  --ws-r-fs-btn: 13px;
+
+  /* chapter card */
+  --ws-k-grad: linear-gradient(135deg, #2d6cdf, #7a4fe0);
+  --ws-k-fg: #ffffff;
+  --ws-k-fs-kicker: 22px;
+  --ws-k-fs-title: 88px;
+  --ws-k-fs-sub: 30px;
+  --ws-k-pad: 140px;
+  --ws-k-sub-w: 1100px;
+  --ws-k-kicker-track: .12em;
+  --ws-k-kicker-op: .8;
+  --ws-k-sub-op: .9;
+  --ws-k-title-mt: .2em;
+  --ws-k-title-mb: .3em;
+  --ws-k-lh-title: 1.05;
+  --ws-k-lh-sub: 1.35;
+  --ws-k-pitch-mt: 56px;
+  --ws-k-pitch-w: 1180px;
+  --ws-k-pitch-pad: 28px 36px;
+  --ws-k-pitch-bg: rgba(255, 255, 255, .12);
+  --ws-k-pitch-radius: 14px;
+  --ws-k-fs-pitch-k: 18px;
+  --ws-k-fs-pitch: 30px;
+  --ws-k-lh-pitch: 1.3;
+  --ws-k-pitch-gap: 8px;
+  --ws-k-pitch-row-gap: 22px;
+}
+
+</style>
+<style>
+  html, body { margin: 0; background: var(--ws-c-side); color: var(--ws-c-tx); font-family: var(--ws-font-ui);
+               font-size: 16px; line-height: var(--ws-lh); }
+  header { background: var(--ws-k-grad); color: #ffffff; padding: 56px 24px 48px; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { margin: 0 0 8px; font-size: 34px; line-height: 1.2; }
+  header p { margin: 0; font-size: 18px; opacity: .9; }
+  main { padding: 32px 24px 56px; }
+  .present { display: block; background: var(--ws-c-bg); border: var(--ws-line) solid var(--ws-c-line);
+             border-radius: var(--ws-radius); padding: 24px; margin-bottom: 36px; color: inherit; text-decoration: none; }
+  .present strong { display: block; font-size: 28px; color: #2f8f8a; }
+  .present span { color: var(--ws-c-tx2); }
+  h2 { font-size: 22px; margin: 32px 0 12px; }
+  ul.eps { list-style: none; margin: 0; padding: 0; }
+  .eps li { background: var(--ws-c-bg); border: var(--ws-line) solid var(--ws-c-line);
+            border-radius: var(--ws-radius); padding: 16px 20px; margin-bottom: 12px; }
+  .eps a { font-size: 18px; font-weight: 600; color: #1b2433; text-decoration: none; }
+  .eps a:hover { text-decoration: underline; }
+  .eps p { margin: 4px 0 0; color: var(--ws-c-tx2); }
+  .eps small { color: var(--ws-c-mut); font-size: var(--ws-fs-sm); }
+  footer a { color: #1b2433; }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Taller de skills de team</h1>
+  <p>Episodios en video para aprender a usar nuestras skills, paso a paso.</p>
+</div></header>
+<main><div class="wrap">
+  <a class="present" href="control.html"><strong>Presentar</strong>
+    <span>Abrí esto, tocá «Abrir escenario» y compartí solo la ventana del escenario.</span></a>
+  <h2>Serie Cursor</h2>
+  <ul class="eps">
+  <li><a href="serie-cursor.html#auditing-repos/1">auditing-repos</a><p>Analiza ocho dimensiones, verifica ejecutando cada hallazgo y escribe un informe local con su nivel de confianza. Frena y espera tu respuesta: recién entonces publica un issue por hallazgo y los pull requests que los cierran.</p><small>6 capítulos</small></li>
+  <li><a href="serie-cursor.html#local-board-skill/1">local-board-skill</a><p>Crea un board de épicas, historias y tareas en archivos Markdown, lo traza contra los commits de Git y lo sincroniza con Jira solo después de que revisás un plan guardado: solo se escribe con un plan guardado que revisaste (o con --apply, en la limpieza de links).</p><small>6 capítulos</small></li>
+  <li><a href="serie-cursor.html#install-unified-ci/1">install-unified-ci</a><p>Evalúa el repo, genera el ci.yml canónico para su stack y poda los workflows viejos. Si el repo tiene requerimientos incompatibles, frena y reporta los gaps en vez de romper el CI del equipo.</p><small>6 capítulos</small></li>
+  </ul>
+  <h2>Guías</h2>
+  <footer>
+    <p><a href="https://github.com/josefigueredo/skills-workshop/blob/main/docs/presentar.md">Cómo presentar</a>
+    · <a href="https://github.com/josefigueredo/skills-workshop/blob/main/docs/guion.md">Cómo escribir un episodio</a></p>
+  </footer>
+</div></main>
+</body>
+</html>

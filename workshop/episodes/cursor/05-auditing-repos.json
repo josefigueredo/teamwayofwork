@@ -1,0 +1,549 @@
+{
+  "id": "auditing-repos",
+  "series": "cursor",
+  "order": 5,
+  "title": "auditing-repos",
+  "pitch": {
+    "ask": "Auditá este repo",
+    "does": "Analiza ocho dimensiones, verifica ejecutando cada hallazgo y escribe un informe local con su nivel de confianza. Frena y espera tu respuesta: recién entonces publica un issue por hallazgo y los pull requests que los cierran."
+  },
+  "skill": {
+    "repo": "teamwayofwork",
+    "commit": "a0bc150",
+    "date": "2026-10-17"
+  },
+  "workspace": {
+    "repo": "mi-servicio",
+    "files": [
+      "api",
+      "web",
+      "docs",
+      "README.md"
+    ],
+    "chats": [
+      {
+        "title": "Revisar el alcance de devoluciones",
+        "age": "1d"
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "instalar",
+      "title": "Instalar",
+      "subtitle": "Una vez por máquina: clonar, enlazar y autenticar gh",
+      "screen": "terminal",
+      "faq": [
+        {
+          "q": "¿Por qué enlazar y no copiar?",
+          "a": "Porque así hay una sola fuente de verdad: tu clon. Cuando lo actualizás, la skill se actualiza sola. Una copia se queda vieja en silencio."
+        },
+        {
+          "q": "¿Qué son ~/.agents y ~/.claude?",
+          "a": "Son las carpetas donde cada agente busca skills. Cursor lee la primera; Claude Code lee la segunda, por eso hay dos enlaces. Si solo usás Cursor, alcanza con el primero."
+        },
+        {
+          "q": "¿Puedo instalarla sin enlaces?",
+          "a": "Sí: con npx skills add, desde tu clon, y necesitás Node. Pero instala una copia: no se actualiza con git pull, hay que repetir el comando. Y si ya la habías enlazado, te cambia el enlace por la copia."
+        },
+        {
+          "q": "El clone dice «Permission denied», ¿qué hago?",
+          "a": "Falta acceso a este repo, que es de otra organización. Pedíselo al equipo dueño; la clave SSH del episodio 0 sirve en cuanto te lo den. Y sobre gh y Jira: son opcionales; sin gh la skill solo escribe el informe local, y sin Jira el resto anda igual."
+        }
+      ],
+      "steps": [
+        {
+          "type": "term",
+          "cmd": "git clone <repo> ~/skills/teamwayofwork",
+          "out": [
+            "Cloning into '~/skills/teamwayofwork'..."
+          ],
+          "source": "inferido",
+          "cwd": "~",
+          "notes": "Primero bajamos el repo del equipo. Ojo: es un repo con varias skills adentro, y la que vamos a usar vive en la carpeta skills/auditing-repos. En <repo> va la dirección que te da tu equipo. Necesita red y acceso por SSH. La clave SSH sale del episodio 0, pero el acceso a este repo, que es de otra organización, se lo pedís al equipo dueño: si no te lo dieron, git clone responde «Permission denied» y no es un error tuyo. Paso inferido."
+        },
+        {
+          "type": "term",
+          "cmd": "mkdir -p ~/.agents/skills ~/.claude/skills",
+          "out": [],
+          "source": "real",
+          "cwd": "~",
+          "notes": "Creamos las dos carpetas donde los agentes buscan skills, por si no existen. Si ya existen, no pasa nada: el -p lo tolera."
+        },
+        {
+          "type": "term",
+          "cmd": "cd ~/skills/teamwayofwork && ln -s \"$PWD/skills/auditing-repos\" ~/.agents/skills/auditing-repos",
+          "out": [],
+          "source": "real",
+          "cwd": "~",
+          "notes": "Un enlace simbólico es un acceso directo: la carpeta de la skill sigue estando en tu clon y el agente la ve desde acá. No imprime nada, y está bien. Si el destino ya existe, ln falla; en ese caso mirá a dónde apunta antes de deshacer nada."
+        },
+        {
+          "type": "term",
+          "cmd": "ln -s ../../.agents/skills/auditing-repos ~/.claude/skills/auditing-repos",
+          "out": [],
+          "source": "real",
+          "cwd": "~",
+          "notes": "El segundo enlace es solo para Claude Code. Fijate que es relativo y apunta al primero: así hay un único origen. Si usás solo Cursor, podés saltearlo."
+        },
+        {
+          "type": "term",
+          "cmd": "head -3 ~/.claude/skills/auditing-repos/SKILL.md",
+          "out": [
+            "---",
+            "name: auditing-repos",
+            "description: Use when asked to review, audit, or assess a local repository for code quality, architecture, testability, coverage, security, documentation or resilience — especially when the findings should become GitHub issues and pull requests, or be tracked on a Jira board."
+          ],
+          "source": "real",
+          "cwd": "~",
+          "notes": "La prueba de que quedó bien: leemos el encabezado del SKILL.md pasando por los dos enlaces. Si lo ves, el agente también lo va a ver. Abrí una sesión nueva del agente: una abierta antes no se entera."
+        },
+        {
+          "type": "term",
+          "cmd": "~/.agents/skills/auditing-repos/scripts/test-attribution-pattern.sh | tail -3",
+          "out": [
+            "  ✓ ignored: refactor: rename the codex_parser module",
+            "",
+            "passed=22 failed=0"
+          ],
+          "source": "inferido",
+          "cwd": "~",
+          "notes": "Una comprobación que viene con la skill: prueba que el detector de atribución dispara en los casos malos y no se confunde con los legítimos. Tiene que terminar en passed=22 failed=0. Inferido: usa rg, que no está en el entorno de la captura."
+        },
+        {
+          "type": "term",
+          "cmd": "gh auth login",
+          "out": [
+            "? What account do you want to log into? GitHub.com",
+            "✓ Logged in as <tu-usuario>"
+          ],
+          "source": "inferido",
+          "cwd": "~",
+          "notes": "Esto lo hacés vos, en tu terminal, y es a propósito: es un flujo interactivo con tu cuenta de GitHub, y el agente no debe hacerlo por vos. Sin gh autenticado la skill solo escribe el informe local. Salida inferida.",
+          "pause": true
+        },
+        {
+          "type": "term",
+          "cmd": "open -e ~/.zshrc",
+          "out": [],
+          "source": "inferido",
+          "cwd": "~",
+          "notes": "Jira es opcional. Si lo querés, abrís tu ~/.zshrc con un editor y agregás JIRA_BASE_URL, JIRA_EMAIL y JIRA_API_TOKEN. Son un secreto: nunca las pegues en el chat. Después reiniciá Cursor. Si falta alguna, Jira se saltea y todo lo demás sigue andando."
+        }
+      ]
+    },
+    {
+      "id": "caso-principal",
+      "title": "Caso principal",
+      "subtitle": "Auditar un repo y frenar en la compuerta",
+      "screen": "cursor-full",
+      "faq": [
+        {
+          "q": "¿Por qué verifica ejecutando y no solo leyendo?",
+          "a": "Porque leer el código y que algo «parezca mal» es una hipótesis, no un hallazgo. Un hallazgo equivocado le cuesta una tarde a una compañera y la confianza en todos los demás."
+        },
+        {
+          "q": "¿Qué es la compuerta?",
+          "a": "Es el momento en que la skill frena con el informe y te pregunta qué publicar. Hasta que contestás, no toca GitHub ni Jira. Ojo: es una instrucción de la skill, no un bloqueo técnico."
+        },
+        {
+          "q": "¿Qué pasa con lo que no se pudo verificar?",
+          "a": "Se reporta, con su confianza en «unverified», pero no se publica. Así lo ves vos y decidís, sin que le llegue ruido a nadie."
+        },
+        {
+          "q": "¿Por qué agrega AUDIT-REPORT.md al .gitignore?",
+          "a": "Porque el informe tiene hallazgos de seguridad y es un borrador hasta que lo aprobás. Con un git add -A se subiría al historial antes de la compuerta."
+        }
+      ],
+      "steps": [
+        {
+          "type": "ask",
+          "text": "Auditá este repo",
+          "source": "inferido",
+          "notes": "Dos palabras alcanzan. Lo que cambia con esta skill es que no hace falta explicarle el método: se activa sola con «auditá», «revisá este código» o «chequeá seguridad». Parado en el repo que querés revisar, no en el de la skill."
+        },
+        {
+          "type": "tool",
+          "label": "Read · ~/.agents/skills/auditing-repos/SKILL.md",
+          "source": "inferido",
+          "notes": "Cursor reconoce el pedido y carga la skill. Desde acá el agente sigue un orden fijo: preflight, analizar, verificar, informe local, compuerta, publicar, responder la review. También lee dos referencias obligatorias: verificación y atribución."
+        },
+        {
+          "type": "term",
+          "cmd": "~/.agents/skills/auditing-repos/scripts/preflight.sh",
+          "out": [
+            "── repository ──",
+            "git repo                   yes (main)",
+            "working tree               clean",
+            "default branch             unknown",
+            "",
+            "── github ──",
+            "gh auth                    yes",
+            "repo permission            WRITE",
+            "issues enabled             true",
+            "",
+            "── jira (optional) ──",
+            "jira                       skipped (missing: JIRA_BASE_URL JIRA_EMAIL JIRA_API_TOKEN)",
+            "",
+            "── audit report safety ──",
+            "AUDIT-REPORT.md            NOT IGNORED in this repo",
+            "  →                      the report holds detailed security findings and is a draft until",
+            "                           approved. A git add -A would publish it to history before the gate.",
+            "  fix                      echo 'AUDIT-REPORT.md' >> .gitignore   (or write to the scratchpad)",
+            "",
+            "── verification tooling ──",
+            "docker                     no — some claims cannot be verified by running them",
+            "uv                         yes",
+            "rg                         yes",
+            "fd                         yes",
+            "",
+            "ok=1 warnings=2 blocking=0"
+          ],
+          "source": "inferido",
+          "cwd": "~/mi-servicio",
+          "notes": "Primero el preflight: qué hay y qué falta. No escribe nada. Fijate en dos cosas. Una, el aviso de AUDIT-REPORT.md: el informe es un borrador con hallazgos de seguridad y hay que evitar que un git add -A lo suba. Dos, docker en «no»: un faltante opcional no frena la auditoría, pero cambia lo que el agente puede afirmar; sin docker no dirá nada sobre una imagen. Inferido: usa rg, que no está en la captura; la salida sigue la de la documentación."
+        },
+        {
+          "type": "say",
+          "md": "Hay git, el árbol está limpio y `gh` está autenticado. Dos avisos:\n- `AUDIT-REPORT.md` no está en el `.gitignore`: lo agrego antes de escribirlo.\n- No hay `docker`: no voy a afirmar nada sobre imágenes.\n\nNo hay `CLAUDE.md`, `AGENTS.md` ni configuración de CI para leer. Sigo con el análisis.",
+          "source": "inferido",
+          "notes": "El agente no calla lo que no puede hacer: lo dice. Y no se lanza a analizar sin mirar antes el CI y las instrucciones del repo; acá no hay, y lo informa. Es donde más fallan las auditorías: afirmar cosas que el CI privado desmiente."
+        },
+        {
+          "type": "term",
+          "cmd": "echo 'AUDIT-REPORT.md' >> .gitignore",
+          "out": [],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Esto es lo que dice la skill: confirmar que el informe no se pueda commitear antes de escribirlo. Una línea al .gitignore, y listo."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · análisis de ocho dimensiones · api/ y web/",
+          "source": "inferido",
+          "notes": "El agente recorre las ocho dimensiones: código limpio, arquitectura, testabilidad, cobertura, seguridad, cadena de suministro, resiliencia y documentación. Anota hallazgos, todavía no publica nada."
+        },
+        {
+          "type": "say",
+          "md": "Encontré **tres candidatos**. Ninguno es un hallazgo todavía: los verifico ejecutando.\n- Un descuento mayor al 100% en `orders.py`\n- La paginación de `stats.py`\n- El contador de `counter.py`",
+          "source": "inferido",
+          "notes": "Remarcá la palabra «candidatos». Un hallazgo sin verificar es una suposición con una cita; hasta que algo lo ejecuta, no pasa a ser hallazgo.",
+          "pause": true
+        },
+        {
+          "type": "term",
+          "cmd": "python3 -c \"from mi_servicio import orders; orders.create_order('A1', [(100, 1)]); print(orders.order_total('A1', discount_pct=150))\"",
+          "out": [
+            "-50.0"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio/api",
+          "notes": "Primer candidato, probado de verdad: un pedido de 100 con 150% de descuento. Fijate el resultado: da menos 50. El total queda negativo; esto sí es un hallazgo, con evidencia que cualquiera puede repetir."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 -c \"from mi_servicio import stats; print(stats.paginate([1, 2, 3, 4], 1, 2))\"",
+          "out": [
+            "[3, 4]"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio/api",
+          "notes": "Segundo candidato: el docstring dice que las páginas empiezan en 1, pero pedir la página 1 devuelve la segunda, 3 y 4. Otra vez, evidencia ejecutada, no opinión."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · counter.hit() desde 8 hilos · el total dio lo esperado",
+          "source": "inferido",
+          "notes": "Del tercer candidato, la carrera del contador, el agente intentó reproducirla y no pudo. Eso no lo descarta, pero tampoco lo deja pasar como cierto: va al informe como «unverified». Esta es la honestidad que buscamos."
+        },
+        {
+          "type": "tool",
+          "label": "Write · AUDIT-REPORT.md",
+          "source": "inferido",
+          "notes": "Un archivo local, que ya está ignorado. Cada hallazgo lleva dimensión, severidad, evidencia, por qué importa, arreglo propuesto y, obligatoria, la confianza."
+        },
+        {
+          "type": "say",
+          "md": "#### Informe listo: AUDIT-REPORT.md\n#### F-01 · Un descuento de más del 100% deja el total negativo\n**Dimensión:** clean code · **Severidad:** media · **Confianza:** verified by execution\n#### F-02 · La paginación dice «desde 1» pero salta una página\n**Dimensión:** documentación · **Severidad:** baja · **Confianza:** verified by execution\n#### F-03 · Dos pedidos a la vez pueden contarse como uno\n**Dimensión:** resiliencia · **Severidad:** baja · **Confianza:** unverified, reasoning only\n\nF-03 queda **sin verificar**: lo reporto, pero no lo publico. No toqué GitHub. **¿Cuáles publico?**",
+          "source": "inferido",
+          "notes": "Este es el momento clave del episodio. El agente frena y pregunta; no publicó nada. Leé la confianza de cada uno y señalá que F-03 dice «unverified»: se muestra, pero no sale. Recordá el límite: la compuerta es una instrucción de la skill, no un bloqueo técnico; por eso conviene leer el informe vos.",
+          "pause": true
+        },
+        {
+          "type": "ask",
+          "text": "Publicá F-01 y F-02. F-03 no.",
+          "source": "inferido",
+          "notes": "Esta es la decisión humana, en una frase y en el chat. La skill no sigue hasta que contestás. Si hubieras dicho «ninguno», el informe se queda local y listo."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · sweep.sh main",
+          "source": "inferido",
+          "notes": "Antes de pushear la skill corre el sweep: 40 caracteres, tooling local, atribución y SHAs de actions. Vamos a verlo con detalle en el próximo capítulo, con un caso que falla."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · gh issue create · F-01 y F-02",
+          "source": "inferido",
+          "notes": "Un issue por hallazgo, con el comando y su salida como evidencia. Es el agente, con gh, quien publica; la skill le indica frenar y preguntar antes, y eso ya pasó."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · gh pr create · fix/descuento-sin-tope y fix/paginacion-desde-1",
+          "source": "inferido",
+          "notes": "Los PRs se agrupan por cambio que se puede mergear y revertir solo. Acá F-01 y F-02 tocan archivos distintos, así que son dos PRs. Si compartieran archivo, irían juntos. Los arreglos van en una rama por PR; no se muestran."
+        },
+        {
+          "type": "say",
+          "md": "#### Listo\n- **Issues:** #21 (F-01) y #22 (F-02), uno por hallazgo.\n- **PRs:** #23 cierra #21 y #24 cierra #22; cada uno abre con `Closes #…` y nombra los archivos que comparte con el otro, o que no comparte ninguno.\n- **F-03** quedó en el informe, sin publicar.\n- Nada de lo que escribí menciona que lo hizo un asistente: todo sale a tu nombre.",
+          "source": "inferido",
+          "notes": "Leé el cierre: cuántos issues y PRs, y qué quedó afuera. Remarcá la última línea: la regla de atribución es absoluta; no hay pie de página ni trailer de co-autor en nada. Eso ya está decidido por la skill y no se discute en cada corrida.",
+          "pause": true
+        }
+      ]
+    },
+    {
+      "id": "el-sweep",
+      "title": "Otro caso: el sweep",
+      "subtitle": "Antes de pushear, chequeos que cuestan menos que descubrirlos en CI",
+      "screen": "cursor-agent",
+      "faq": [
+        {
+          "q": "¿Por qué marca un nombre de test como secreto?",
+          "a": "Porque el detector de TruffleHog toma cualquier palabra de 40 caracteres alfanuméricos como un secreto verificado y rompe el CI. Hay nombres de test que justo miden 40."
+        },
+        {
+          "q": "¿Qué es el tooling local?",
+          "a": "Carpetas de herramientas del editor o del agente, como .serena o .idea. Un git add -A las mete en el PR de otra persona sin que te des cuenta."
+        },
+        {
+          "q": "¿Cuándo dice «limpio»?",
+          "a": "Solo cuando pudo comparar y no encontró nada. Si no puede comparar, por ejemplo con una rama base que no existe, se niega a decir limpio."
+        },
+        {
+          "q": "¿Puedo correrlo yo, sin el agente?",
+          "a": "Sí: son scripts sueltos. Parado en tu repo, corrés sweep.sh con la rama base. Lo mismo con check-attribution.sh."
+        }
+      ],
+      "steps": [
+        {
+          "type": "ask",
+          "text": "Voy a pushear: pasá el sweep y chequeá que nada indique que lo hizo un LLM",
+          "source": "inferido",
+          "notes": "Dos pedidos en una frase. La skill los resuelve con dos scripts: el sweep y el chequeo de atribución. Es un segundo push: ya hay PRs abiertos y la persona vuelve a pedir el chequeo antes de empujar un cambio nuevo."
+        },
+        {
+          "type": "term",
+          "cmd": "~/.agents/skills/auditing-repos/scripts/sweep.sh main",
+          "out": [
+            "── sweeping fix/descuento-sin-tope against main ──",
+            "✗ 40-char identifiers (TruffleHog Lob false positive):",
+            "    api/tests/test_orders.py:test_discount_above_100_keeps_total_zero",
+            "✗ local tooling in the diff:",
+            "    .serena/project.yml",
+            "✓ no LLM attribution (commits, diff, branch, GitHub, Jira)",
+            "· no pinned action SHAs to verify",
+            "✓ no mutable action refs",
+            "",
+            "sweep found problems — fix before pushing",
+            "# exit 1"
+          ],
+          "source": "inferido",
+          "cwd": "~/mi-servicio",
+          "notes": "Dos problemas, y los dos son de los que no se ven a simple vista. Un nombre de test de exactamente 40 caracteres, que TruffleHog tomaría por un secreto, y un archivo de .serena dentro del diff, que se coló con un git add -A. Inferido: el sweep usa rg, que no está en la captura; la salida sigue la de la documentación."
+        },
+        {
+          "type": "say",
+          "md": "No pusheo. El sweep encontró dos problemas:\n- Un nombre de test de 40 caracteres en `api/tests/test_orders.py`: el detector de TruffleHog lo marcaría como secreto.\n- Un archivo de `.serena/` en el diff.\n\nLos saco, enmiendo el commit y vuelvo a correr el sweep.",
+          "source": "inferido",
+          "notes": "El agente se frena solo y dice por qué. No empuja «y vemos en CI». Es el valor del sweep: el error cuesta un minuto acá y una tarde en un PR ajeno."
+        },
+        {
+          "type": "term",
+          "cmd": "~/.agents/skills/auditing-repos/scripts/sweep.sh main",
+          "out": [
+            "── sweeping fix/descuento-sin-tope against main ──",
+            "✓ no 40-char identifiers",
+            "✓ no local tooling files",
+            "✓ no LLM attribution (commits, diff, branch, GitHub, Jira)",
+            "· no pinned action SHAs to verify",
+            "✓ no mutable action refs",
+            "",
+            "sweep clean",
+            "# exit 0"
+          ],
+          "source": "inferido",
+          "cwd": "~/mi-servicio",
+          "notes": "Después de arreglar, el mismo comando. Fijate el punto en «no pinned action SHAs»: no es un tilde, es un punto. Significa que no había nada para chequear, no que se chequeó y estaba bien. La skill distingue las dos cosas a propósito."
+        },
+        {
+          "type": "term",
+          "cmd": "~/.agents/skills/auditing-repos/scripts/check-attribution.sh main",
+          "out": [
+            "── attribution sweep: fix/descuento-sin-tope vs main ──",
+            "✓ commits clean (author, committer, body, trailers)",
+            "✓ diff contents clean",
+            "✓ branch name clean",
+            "✓ GitHub clean (4 items, 0 with own comments)",
+            "· skipped Jira (env vars not set)",
+            "",
+            "no attribution found on any reachable surface",
+            "# exit 0"
+          ],
+          "source": "inferido",
+          "cwd": "~/mi-servicio",
+          "notes": "El segundo pedido: que nada indique que lo hizo un asistente. Mira los commits, el diff, la rama, los PRs y issues de GitHub y, si hay credenciales, Jira. Fijate la última línea: dice «en cualquier superficie alcanzable», no «sin atribución». Lo que no pudo leer figura como salteado con un punto, nunca como limpio."
+        }
+      ]
+    },
+    {
+      "id": "jira-y-review",
+      "title": "Otro caso: Jira y la review",
+      "subtitle": "Vincular los PRs a un ticket y contestar al revisor automático",
+      "screen": "cursor-agent",
+      "faq": [
+        {
+          "q": "¿Crea tickets en Jira por cada hallazgo?",
+          "a": "No. Los hallazgos van a issues de GitHub. Con Jira la skill solo comenta en tickets que ya existen y vincula PRs."
+        },
+        {
+          "q": "¿Por qué no renombra la rama?",
+          "a": "Porque, según la documentación de GitHub, si renombrás la rama de un PR abierto, el PR se cierra. Para PRs que ya existen, la clave va en el título."
+        },
+        {
+          "q": "¿Por qué la clave va al final del título?",
+          "a": "Para no romper el prefijo de los conventional commits, como fix:. Jira escanea el título entero, así que lo encuentra igual. Y la clave va en mayúsculas."
+        }
+      ],
+      "steps": [
+        {
+          "type": "ask",
+          "text": "Vinculá estos PRs al ticket PLAT-123",
+          "source": "inferido",
+          "notes": "Un pedido corto. Jira vincula un PR cuando la clave aparece en el nombre de la rama, en un commit o en el título del PR."
+        },
+        {
+          "type": "say",
+          "md": "Los PRs #23 y #24 ya existen, así que **no renombro sus ramas**: GitHub cierra un PR si se renombra su rama.\n\nLes agrego la clave al final del título: `fix: … (PLAT-123)`.",
+          "source": "inferido",
+          "notes": "Esta es la regla que más cuesta aprender a las malas. La rama de un PR abierto no se toca. El título sí, y es no destructivo. Si ya sabías el ticket antes de empezar, la clave se pone en el nombre de la rama desde el principio."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · gh pr edit 23 y gh pr edit 24 · título con (PLAT-123)",
+          "source": "inferido",
+          "notes": "Dos comandos, uno por PR. Escribe en GitHub, pero sobre PRs que la persona ya aprobó publicar en esta misma conversación."
+        },
+        {
+          "type": "ask",
+          "text": "Contestá los comentarios del revisor automático",
+          "source": "inferido",
+          "notes": "Después de publicar, llegan los comentarios de un revisor automático. Son útiles, pero no tienen la última palabra."
+        },
+        {
+          "type": "say",
+          "md": "Verifiqué cada comentario antes de contestar:\n- **Comentario 1: tiene razón.** El borde de la página 0 también falla; lo arreglo.\n- **Comentario 2: no tiene razón.** Muestro la prueba: el test pasa con el valor que él propone.\n\nRespondo en cada hilo con la evidencia, en las dos direcciones.",
+          "source": "inferido",
+          "notes": "Verificar en las dos direcciones es la idea: ni aceptar todo ni rechazar por reflejo. Si el comentario está mal por la razón que da pero bien en el efecto, la skill dice exactamente eso: es lo más útil para quien lee.",
+          "pause": true
+        }
+      ]
+    },
+    {
+      "id": "si-algo-falla",
+      "title": "Si algo falla",
+      "subtitle": "Los tres tropiezos más comunes",
+      "screen": "terminal",
+      "faq": [
+        {
+          "q": "El agente no ofrece la skill, ¿qué hago?",
+          "a": "Casi siempre abriste la sesión antes de crear los enlaces. Abrí una sesión nueva y verificá a dónde apunta el enlace."
+        },
+        {
+          "q": "¿Anda en Cursor pero no en Claude Code?",
+          "a": "Falta el segundo enlace, el de ~/.claude/skills. Pedile al agente que lo cree, o corrélo vos."
+        },
+        {
+          "q": "¿Qué significa un 401 de Jira?",
+          "a": "Que el token venció o se revocó. No es un problema de permisos. Creá otro token y cambiá la variable."
+        },
+        {
+          "q": "¿Se puede forzar la skill?",
+          "a": "Sí: escribí /auditing-repos en el chat. Pero normalmente se activa sola cuando pedís una auditoría."
+        }
+      ],
+      "steps": [
+        {
+          "type": "term",
+          "cmd": "readlink ~/.agents/skills/auditing-repos",
+          "out": [
+            "~/skills/teamwayofwork/skills/auditing-repos"
+          ],
+          "source": "real",
+          "cwd": "~",
+          "notes": "Primer síntoma: el agente no ofrece la skill. Esto muestra a dónde apunta el enlace: tiene que ser la carpeta skills/auditing-repos de tu clon. Si no sale nada, el enlace no existe; si apunta a otro lado, el clon se movió. Y abrí una sesión nueva."
+        },
+        {
+          "type": "term",
+          "cmd": "~/.agents/skills/auditing-repos/scripts/sweep.sh nope",
+          "out": [
+            "✗ base ref 'nope' does not resolve — cannot diff, refusing to report clean",
+            "  available: main ",
+            "  pass one explicitly: sweep.sh <base-ref>",
+            "# exit 2"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Segundo síntoma: la rama base no existe. El sweep se niega a decir limpio y sale con código 2. Muestra qué ramas hay y cómo pasarla explícita. Un chequeo que pasa en silencio cuando no pudo correr es peor que no tener chequeo."
+        },
+        {
+          "type": "term",
+          "cmd": "~/.agents/skills/auditing-repos/scripts/preflight.sh | grep -A2 '^jira auth'",
+          "out": [
+            "jira auth                  HTTP 401 — token expired or revoked, NOT a permissions problem",
+            "  note                     an unauthenticated Jira returns 404 for real tickets. Never conclude",
+            "                           'the ticket does not exist' from a 404 while /myself returns 401."
+          ],
+          "source": "inferido",
+          "cwd": "~/mi-servicio",
+          "notes": "Tercer síntoma, con Jira: un 401 es un token vencido, no un tema de permisos. Lo importante es la nota: una Jira sin autenticar devuelve 404 para tickets que sí existen, así que jamás se concluye «el ticket no existe» mientras el 401 siga. Inferido: necesita credenciales y red."
+        }
+      ]
+    },
+    {
+      "id": "cierre",
+      "title": "Cierre",
+      "subtitle": "Lo que te llevás",
+      "screen": "cursor-agent",
+      "faq": [
+        {
+          "q": "¿Cuándo la uso?",
+          "a": "Cuando vas a entregar un repo a otro equipo, antes de clonar una plantilla muchas veces, o cuando querés que los hallazgos terminen en issues y PRs."
+        },
+        {
+          "q": "¿Sirve para revisar un PR?",
+          "a": "No. Para un diff puntual usá el revisor de tu host, por ejemplo /code-review. Esta skill es para un repositorio entero."
+        },
+        {
+          "q": "¿Qué necesito para el próximo episodio?",
+          "a": "Lo mismo del episodio 0. Cada episodio empieza instalando su skill."
+        }
+      ],
+      "steps": [
+        {
+          "type": "ask",
+          "text": "¿Qué me llevo de esto?",
+          "source": "inferido",
+          "notes": "Cerrá con las tres ideas; no repitas el episodio."
+        },
+        {
+          "type": "say",
+          "md": "#### Lo que te llevás\n- **Un hallazgo sin verificar no es un hallazgo:** cada cosa que se publica salió de ejecutar algo, y lo que no, se reporta pero no sale.\n- **Una compuerta antes de publicar:** el agente frena con el informe y espera tu respuesta. Es una instrucción, no un candado: leé el informe.\n- **Nada indica que lo hizo un asistente:** ni en commits ni en issues ni en PRs, y el sweep lo comprueba.\n\n#### Próximo episodio: local-board-skill\nCómo mantener un tablero de trabajo en archivos Markdown, trazado contra los commits de Git, y sincronizarlo con Jira solo después de revisar un plan.",
+          "source": "inferido",
+          "notes": "Las tres ideas son el producto: verificar, frenar y no dejar firma. Anticipá el próximo en una frase: pasamos de auditar código a ordenar el trabajo, con un tablero que vive en tu repo y que solo llega a Jira cuando vos revisaste el plan.",
+          "pause": true
+        }
+      ]
+    }
+  ]
+}
