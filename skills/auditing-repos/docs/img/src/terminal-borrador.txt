@@ -1,0 +1,4 @@
+# El borrador del comentario para el PR de otro: se escanea solo el archivo, sin tocar git, gh ni Jira
+$ ~/.agents/skills/auditing-repos/scripts/check-attribution.sh --file pr-6-review.md
+# Un borrador que no se pudo leer no da limpio: sale con 2
+$ ~/.agents/skills/auditing-repos/scripts/check-attribution.sh --file pr-6-reveiw.md

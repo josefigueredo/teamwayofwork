@@ -11,10 +11,12 @@ regla, la [referencia](referencia.md).
 | `sweep.sh` | «Voy a pushear» | [El sweep](#3-el-sweep-antes-de-pushear) |
 | `check-attribution.sh` | Que nada indique que lo hizo un LLM | [Atribución](#4-que-nada-indique-que-lo-hizo-un-llm) |
 | la skill | «Vinculá los PRs al ticket» y «contestá la review» | [Jira y review](#5-vincular-a-jira-y-responder-la-review) |
+| la skill + `check-attribution.sh --file` | «Revisá el PR #N de un compañero» | [El PR de otro](#6-revisar-el-pr-de-un-compañero) |
 
 > **Sobre las salidas.** Los casos 1, 3 y 4 muestran salida **real** de los scripts sobre un repo de prueba, sin `gh` autenticado
 > y sin Jira. Los casos 2 y 5 hacen cosas que dependen de tu repo, de GitHub, de Docker y de Jira: ahí la conversación es una
-> **maqueta con datos ficticios**, sin salida de herramientas inventada.
+> **maqueta con datos ficticios**, sin salida de herramientas inventada. El caso 6 tiene las dos cosas: la conversación es
+> maqueta y el escaneo del borrador es salida real.
 
 ---
 
@@ -95,6 +97,35 @@ El detector se prueba en las dos direcciones con `test-attribution-pattern.sh` (
 La regla de la rama y la forma del título vienen de la [referencia](referencia.md#vincular-a-jira). Para la review, la skill
 verifica cada comentario del revisor automático antes de aceptarlo o rechazarlo, en las dos direcciones.
 
+## 6. Revisar el PR de un compañero
+
+**Pieza:** la skill y `check-attribution.sh --file` · **Escribe en GitHub:** un comentario en el PR, solo después de tu
+respuesta. No toca la rama del autor, no abre issues ni PRs y no aprueba ni pide cambios.
+
+![Maqueta de Cursor: el agente prueba el merge del PR con main, resume tres hallazgos y pregunta antes de comentar](img/cursor-pr-ajeno.png)
+
+*Maqueta con datos ficticios: los comandos son los de la referencia, sin salida inventada. Los hallazgos salen de una revisión
+real, con los nombres cambiados.*
+
+Lo que cambia frente a una auditoría es **qué se prueba**. Un PR atrasado respecto de su base sale `CLEAN` porque git sabe
+combinarlos, pero lo que se despliega es el merge. Por eso el agente arma el merge con la base del PR en un `git worktree`
+descartable, construye y ejecuta **eso**, y tu checkout no se toca. Si hay conflicto, lo reporta como hallazgo bloqueante y
+aborta el merge: no prueba la rama sola para presentarla como si fuera el merge.
+
+El comentario sigue la forma de `references/pr-review.md`: primero lo que está bien, después cada hallazgo con su severidad en
+el título, la evidencia como comando y salida, una sección de reproducción con los SHAs probados y una línea final que dice qué
+frena el merge.
+
+Antes de mostrártelo, el borrador pasa por el escaneo de atribución **solo del archivo**. En la rama de otro, el sweep completo
+leería los commits y los PRs del autor, que no te toca juzgar:
+
+![Terminal con check-attribution.sh --file: un borrador limpio y un archivo inexistente que sale con código 2](img/terminal-borrador.png)
+
+*Salida real, sobre un borrador de prueba en un directorio descartable.*
+
+**Si falla:** un borrador que no se puede leer sale con código 2 y no dice «limpio». Si el borrador tiene atribución, el escaneo
+muestra la línea y sale con 1; el agente la saca y vuelve a escanear antes de preguntarte.
+
 ---
 
 ## Qué protege y qué no
@@ -105,6 +136,8 @@ verifica cada comentario del revisor automático antes de aceptarlo o rechazarlo
 | Subir el informe o tooling local por accidente | El preflight avisa si `AUDIT-REPORT.md` no está ignorado; el sweep marca `.serena/`, `.idea/`, etc. |
 | Un falso «limpio» | Rama base inexistente → código 2; superficie ilegible → salteada o fallida |
 | Atribución a un LLM en el historial | `check-attribution.sh` mira commits, diff, rama, GitHub y Jira |
+| Revisar el PR de otro sobre código que no se va a desplegar | En ese modo se prueba el merge con la base del PR, no la rama sola |
+| Que un comentario en el PR de otro lleve atribución | `check-attribution.sh --file` escanea el borrador antes de mostrártelo |
 
 | **No** te protege de… | Por qué |
 |---|---|
