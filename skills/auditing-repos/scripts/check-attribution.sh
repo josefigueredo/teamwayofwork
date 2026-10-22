@@ -8,19 +8,12 @@
 # test it.
 #
 # Usage: check-attribution.sh [base-ref]
+#        check-attribution.sh --file <draft>   scan one draft only, before posting
+#
+# --file is for a comment on someone else's PR: there the branch's commits,
+# diff and PR bodies are the author's, not yours to judge or fix, so it never
+# touches git, gh or Jira.
 set -uo pipefail
-
-BASE="${1:-}"
-if [ -z "$BASE" ]; then
-  BASE=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
-  [ -z "$BASE" ] && for c in main master; do
-    git rev-parse --verify --quiet "$c" >/dev/null && { BASE="$c"; break; }
-  done
-fi
-if ! git rev-parse --verify --quiet "$BASE" >/dev/null 2>&1; then
-  echo "✗ base ref '$BASE' does not resolve — refusing to report clean"
-  exit 2
-fi
 
 # Assembled at runtime so this file does not itself read as an attribution.
 # Living list — extend it when a new vendor appears. `codex` matters in
@@ -37,6 +30,31 @@ fail=0
 flag() { echo "✗ $1"; fail=1; }
 pass() { echo "✓ $1"; }
 scan() { rg -iP --no-heading -m3 "$PAT" 2>/dev/null; }
+
+if [ "${1:-}" = "--file" ]; then
+  draft="${2:-}"
+  if [ -z "$draft" ] || [ ! -r "$draft" ]; then
+    echo "✗ cannot read draft '$draft' — nothing was checked"
+    exit 2
+  fi
+  echo "── attribution sweep: $draft ──"
+  hit=$(scan < "$draft")
+  [ -n "$hit" ] && { flag "in the draft:"; echo "$hit" | sed 's/^/    /'; } \
+                || pass "$(basename "$draft") clean"
+  exit "$fail"
+fi
+
+BASE="${1:-}"
+if [ -z "$BASE" ]; then
+  BASE=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+  [ -z "$BASE" ] && for c in main master; do
+    git rev-parse --verify --quiet "$c" >/dev/null && { BASE="$c"; break; }
+  done
+fi
+if ! git rev-parse --verify --quiet "$BASE" >/dev/null 2>&1; then
+  echo "✗ base ref '$BASE' does not resolve — refusing to report clean"
+  exit 2
+fi
 
 echo "── attribution sweep: $(git rev-parse --abbrev-ref HEAD) vs $BASE ──"
 

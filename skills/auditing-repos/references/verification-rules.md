@@ -129,3 +129,14 @@ Before calling CI "a flaky upstream":
 Fixing one finding can break another. After each change, re-run the checks the original finding was based on — build, run, curl, permissions — not just the unit tests.
 
 Real case: `pip uninstall … || true` — the `|| true` silently defeated the hardening it was written to perform. Verified afterwards by asserting on a stock image (exit 1) and the hardened one (exit 0).
+
+## 12. A mergeable PR is not a tested merge
+
+GitHub's `CLEAN` means git can combine the branch with its base without conflicts. It says nothing about how the combination *behaves*. A branch that is behind its base is reviewed on code that will never ship.
+
+```bash
+git fetch origin "pull/$N/head" && HEAD_SHA=$(git rev-parse FETCH_HEAD)
+git worktree add --detach "$WT" "origin/$BASE" && git -C "$WT" merge --no-ff --no-edit "$HEAD_SHA"
+```
+
+Build and run that. Real case: a PR behind main was reviewed on the merge result, which proved that what main had added since (a CSP hash, an `error_page` on `/health`, eight config `include`s) survived — and found that the PR's new access guard returned 403 on a plain browser reload. Neither would have been visible on the branch alone. See `pr-review.md`.

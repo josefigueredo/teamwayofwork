@@ -136,6 +136,10 @@ Conventional commits. Body explains **why**, including what was verified.
 ~/.agents/skills/auditing-repos/scripts/sweep.sh
 ```
 
+## Commenting on someone else's PR
+
+Not covered here: that mode publishes one review comment and nothing in this file. See `pr-review.md`.
+
 ## Responding to automated review
 
 Verify every comment before accepting or rejecting — both directions. Reply with what landed, what did not, and the evidence either way. When a comment is wrong on its reasoning but right in effect, say exactly that; it happens, and the distinction is the useful part.

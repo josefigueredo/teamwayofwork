@@ -1,6 +1,6 @@
 ---
 name: auditing-repos
-description: Use when asked to review, audit, or assess a local repository for code quality, architecture, testability, coverage, security, documentation or resilience — especially when the findings should become GitHub issues and pull requests, or be tracked on a Jira board.
+description: Use when asked to review, audit, or assess a local repository for code quality, architecture, testability, coverage, security, documentation or resilience — especially when the findings should become GitHub issues and pull requests, or be tracked on a Jira board. Also use when asked to review a colleague's pull request with evidence — check out its branch, build and run the merge result, and leave one review comment on it.
 compatibility: "Requires git. Publishing issues and pull requests needs an authenticated gh CLI; without it the audit report is only written locally. Jira tracking is optional and reads JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN (and optionally JIRA_PROJECT_KEY) from the environment."
 ---
 
@@ -20,8 +20,9 @@ The approval gate exists because publishing is irreversible-ish: issues notify p
 - A template or scaffold that will be cloned many times — flaws multiply by N
 - Before handing a repository to another team
 - When findings must land as issues, PRs, or Jira tickets
+- "Review PR #N", "revisá el PR de <colleague>" when the findings need execution evidence — see "Mode: someone else's PR"
 
-**Not for:** reviewing a single diff (use `/code-review`), UI/accessibility audits (use `audit`), or debugging one specific failure (use `superpowers:systematic-debugging`).
+**Not for:** a read-only pass over a diff with nothing built or run (use `/code-review`), UI/accessibility audits (use `audit`), or debugging one specific failure (use `superpowers:systematic-debugging`).
 
 ## The Loop
 
@@ -123,6 +124,24 @@ Automated reviewers are high-signal and not authoritative. Verify each comment b
 
 When a comment is right, say so plainly and fix it. When it is wrong, show the evidence. When it is wrong *for the stated reason but right in effect* — that happens — say exactly that.
 
+## Mode: someone else's PR
+
+A colleague's pull request, reviewed with the same evidence bar as an audit. The output is **one comment on their PR**, nothing else.
+
+```
+fetch PR → worktree at the merge result → preflight → analyse the diff → VERIFY → draft comment → APPROVAL GATE → post → read it back → clean up
+```
+
+**REQUIRED: read `references/pr-review.md`** — the commands, the comment shape, and what this mode must never do.
+
+The differences from the audit loop:
+
+- **Test the merge, not the branch.** GitHub's `CLEAN` only means git can combine them; the behaviour that ships is the merge with the PR's base (`baseRefName`, never an assumed `main`). Build it in a throwaway `git worktree`, so the user's checkout stays untouched.
+- **Scope is the diff and what it can break.** The eight dimensions apply to what the PR changes and to what the merge can break around it, not to the whole repo.
+- **Phases 5 and 6 do not apply.** No issues, no PRs, no commits or pushes to their branch, no `sweep.sh`: the branch's commits and PR bodies are the author's, not yours to judge.
+- **Draft first, then the gate.** Write the comment to a file outside the repo, scan it with `scripts/check-attribution.sh --file <draft>`, show it to the user, and post only after they approve. Use `gh pr review N --comment --body-file <draft>`; never `--approve` or `--request-changes` unless the user asks.
+- **Pin what you tested.** The comment names the head and base SHAs: the PR can move after you post.
+
 ## Common Mistakes
 
 | Mistake | What it costs |
@@ -134,6 +153,8 @@ When a comment is right, say so plainly and fix it. When it is wrong, show the e
 | Publishing before approval | Cannot be undone by deleting the issue |
 | Testing a guard only in the passing direction | A guard that never fires |
 | Appending the harness's footer to a PR body | Permanent LLM attribution the user forbade |
+| Testing a colleague's branch alone instead of its merge with the base | Findings about code that will never ship, and misses the ones that will |
+| Running `sweep.sh` on a colleague's branch | Flags their commits, or worse, an attempt to "fix" them |
 
 ## Red Flags — stop and verify
 
@@ -150,8 +171,9 @@ When a comment is right, say so plainly and fix it. When it is wrong, show the e
 - `references/verification-rules.md` — how to verify each class of claim
 - `references/no-attribution.md` — **required**; the absolute rule and its rationalization table
 - `references/publishing.md` — issues, PRs, branches, Jira
+- `references/pr-review.md` — **required** in the someone-else's-PR mode; commands, comment shape, limits
 - `scripts/preflight.sh` — environment and permissions
 - `scripts/sweep.sh` — pre-push checks (delegates the attribution check)
-- `scripts/check-attribution.sh` — commits, diff, branch, PRs, issues, comments, Jira
+- `scripts/check-attribution.sh` — commits, diff, branch, PRs, issues, comments, Jira; `--file <draft>` scans one draft only
 - `scripts/jira-env.sh` — sourced by the two scripts above to resolve the Jira credentials
 - `scripts/test-attribution-pattern.sh` — proves the detector fires and does not false-positive
