@@ -18,8 +18,9 @@ Publicar es difícil de deshacer: un issue notifica gente, un PR consume tiempo 
 - Un template o scaffold que se va a clonar muchas veces — ahí los defectos se multiplican por N
 - Antes de entregarle un repositorio a otro equipo
 - Cuando los hallazgos tienen que terminar en issues, PRs o tickets de Jira
+- "Revisá el PR #N de un compañero" cuando los hallazgos necesitan evidencia ejecutada: ver [El PR de otro](#el-pr-de-otro)
 
-**Cuándo NO:** para revisar un diff puntual usá `/code-review`; para auditorías de UI/accesibilidad, `audit`; para debuggear una falla específica, `superpowers:systematic-debugging`.
+**Cuándo NO:** para una lectura de un diff sin construir ni ejecutar nada usá `/code-review`; para auditorías de UI/accesibilidad, `audit`; para debuggear una falla específica, `superpowers:systematic-debugging`.
 
 ## Instalación
 
@@ -84,6 +85,24 @@ Los **PRs se agrupan** por cambio independientemente mergeable y reversible. La 
 
 Todo PR abre con `Closes #a. Closes #b.` y cierra con una sección que nombra los archivos que comparte con sus hermanos, para que los conflictos de orden de merge se sepan de antemano.
 
+## El PR de otro
+
+El mismo estándar de evidencia, apuntado a un pull request que no escribiste. Lo que sale es **un comentario en ese PR**, y nada más.
+
+```
+traer el PR → worktree con el merge → preflight → analizar el diff → VERIFICAR → borrador → APROBACIÓN → publicar → releerlo → limpiar
+```
+
+| Diferencia con la auditoría | Por qué |
+|---|---|
+| Se prueba **el resultado del merge** con la base del PR, en un `git worktree` descartable | GitHub marca `CLEAN` si git sabe combinarlas, pero lo que se despliega es el merge, no la rama. Tu checkout no se toca. |
+| El alcance es el diff y lo que el merge puede romper alrededor | No es una auditoría del repo entero. |
+| No hay issues, PRs, commits ni pushes a su rama, y no corre `sweep.sh` | Los commits y PRs de la rama son del autor: no te toca juzgarlos ni arreglarlos. |
+| El borrador se escanea con `check-attribution.sh --file`, te lo muestra y **frena** | Publica recién con tu aprobación, con `gh pr review N --comment`; nunca aprueba ni pide cambios salvo que se lo pidas. |
+| El comentario fija los SHAs de head y base | El PR puede moverse después de que comentás. |
+
+La forma del comentario sale de una revisión real: primero lo que está bien, después cada hallazgo con su severidad en el título (bloqueante o decisión del autor), la evidencia como comando y salida, una sección de reproducción, y una línea final que dice qué frena el merge. El detalle está en `references/pr-review.md`.
+
 ## Regla absoluta: nada indica que lo hizo un LLM
 
 Ni en el autor, ni en un trailer de co-autor, ni en el cuerpo del commit, ni en el título o cuerpo de un PR, ni en un issue, ni en un comentario, ni en un campo de Jira, ni en un comentario de código, ni en el nombre de una rama, ni en el informe local. **En ningún lado.**
@@ -114,6 +133,9 @@ $SKILL/scripts/sweep.sh [rama-base]
 
 # Solo atribución: commits, diff, rama, GitHub y Jira
 $SKILL/scripts/check-attribution.sh [rama-base]
+
+# Solo atribución en un borrador (el comentario para el PR de otro): no toca git, gh ni Jira
+$SKILL/scripts/check-attribution.sh --file <borrador.md>
 
 # Prueba que el detector de atribución dispara y no da falsos positivos
 $SKILL/scripts/test-attribution-pattern.sh
@@ -204,6 +226,7 @@ Las reglas de `references/verification-rules.md` no son hipotéticas. Cada una v
 - Un rango de dependencias roto en su piso, invisible porque el CI resuelve el techo
 - `--require-hashes` descrito como si detectara staleness, cuando no lo hace
 - Un 404 de Jira leído como "no existe" cuando en realidad era un 401
+- Un PR marcado `CLEAN` cuyo guard devolvía 403 al recargar la página, visible solo probando el merge con main
 
 ## Estructura
 
@@ -213,9 +236,10 @@ auditing-repos/
 ├── README.md                         # el índice (lo leés vos)
 ├── docs/                             # instalacion, instalacion-detallada, showcase y esta referencia
 ├── references/
-│   ├── verification-rules.md         # 11 reglas, cada una de un error real
+│   ├── verification-rules.md         # 12 reglas, cada una de un error real
 │   ├── no-attribution.md             # la regla absoluta y sus racionalizaciones
-│   └── publishing.md                 # issues, PRs, ramas, Jira
+│   ├── publishing.md                 # issues, PRs, ramas, Jira
+│   └── pr-review.md                  # el PR de otro: comandos, forma del comentario, límites
 └── scripts/
     ├── preflight.sh
     ├── sweep.sh

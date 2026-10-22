@@ -14,6 +14,7 @@ agente tiene su respuesta:
 | *«Voy a pushear: pasá el sweep»* | busca identificadores de 40 caracteres, archivos de tooling local en el diff, atribución a un LLM y SHAs de actions que no coinciden con su comentario |
 | *«Vinculá estos PRs al ticket PLATE-384»* | pone la clave de Jira en el nombre de la rama o en el título del PR (nunca renombra la rama de un PR abierto) |
 | *«Contestá los comentarios del revisor automático»* | verifica cada comentario antes de aceptarlo o rechazarlo |
+| *«Revisá el PR #N de un compañero»* | prueba **el merge con la base** en un worktree aparte, verifica ejecutando, te muestra el borrador y, con tu aprobación, deja **un** comentario en el PR; no toca su rama ni abre issues ([el PR de otro](docs/referencia.md#el-pr-de-otro)) |
 
 **Qué escribe y qué no:** los scripts de la skill son de solo lectura (no publican nada); lo que publica es el agente con
 `gh`, y la skill le indica frenar y preguntar antes. Esa compuerta es una **instrucción**, no un bloqueo técnico: ningún
