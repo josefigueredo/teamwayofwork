@@ -687,7 +687,7 @@ var Nav = (function () {
 var Render = (function () {
   var USER = "Persona del equipo";
   var TEAM = "Equipo";
-  var MODEL = "Sonnet 5.5";
+  var MODEL = "Sonnet 5.5";  // the chat's model chip, unless the episode names one (workspace.model)
   var BRANCH = "main";
 
   // ---- DOM helpers (text only) ----
@@ -955,16 +955,19 @@ var Render = (function () {
     sb.appendChild(me);
     return sb;
   }
-  function modelRow() {
-    return add(el("div", "ws-ask-row"), el("span", null, "＋"), el("span", null, MODEL + " ⌄"),
+  function modelOf(ep) {
+    return (ep.workspace || {}).model || MODEL;
+  }
+  function modelRow(ep) {
+    return add(el("div", "ws-ask-row"), el("span", null, "＋"), el("span", null, modelOf(ep) + " ⌄"),
                el("span", "ws-send", "↑"));
   }
-  function cursorMain(ch) {
+  function cursorMain(ep, ch) {
     var main = el("div", "ws-main");
     var top = add(el("div", "ws-top"), el("span", null, ch.title), el("span", "ws-top-r", "IDE ↗  ···"));
     var conv = scroller("ws-conv");
     var fu = add(el("div", "ws-followup"), el("span", null, "＋  Send follow-up"),
-                 el("span", "ws-followup-m", MODEL + " ⌄"));
+                 el("span", "ws-followup-m", modelOf(ep) + " ⌄"));
     var foot = add(el("div", "ws-foot"), el("span", null, "⑂ " + BRANCH + " ⌄"), el("span", null, "▭ This Mac ⌄"));
     add(main, top, conv.outer, fu, foot);
     return {main: main, flow: conv.flow};
@@ -1003,14 +1006,14 @@ var Render = (function () {
   function cursorScreen(ep, ch, last, full) {
     var repo = (ep.workspace || {}).repo || "";
     var root = el("div", "ws-screen ws-cursor " + (full ? "ws-cursor-full" : "ws-cursor-agent"));
-    var m = cursorMain(ch);
+    var m = cursorMain(ep, ch);
     var right = full ? cursorRight(ep) : null;
     add(root, cursorSidebar(ep, ch), m.main, full ? right.rp : openTabs(ep));
     var cwd = "~/" + repo, overlays = [];
     chapterSteps(ch, last).forEach(function (st, j) {
       if (st.type === "ask") {
         var a = stepNode("div", "ws-ask", j);
-        add(a, anim(el("div", "ws-ask-text", st.text), "type"), modelRow());
+        add(a, anim(el("div", "ws-ask-text", st.text), "type"), modelRow(ep));
         m.flow.appendChild(a);
       } else if (st.type === "worked") {
         m.flow.appendChild(add(stepNode("div", "ws-worked", j, "node"), document.createTextNode(workedText(st))));
@@ -1083,7 +1086,7 @@ var Render = (function () {
     var repo = (ep.workspace || {}).repo || "";
     var root = el("div", "ws-screen ws-term-theme ws-claude-code");
     var head = add(el("div", "ws-cc-head"), el("div", "ws-cc-brand", "✻ Claude Code"),
-                   el("div", "ws-mut", MODEL + " · ~/" + repo));
+                   el("div", "ws-mut", modelOf(ep) + " · ~/" + repo));
     var body = scroller("ws-cc-body");
     body.flow.appendChild(head);
     var input = add(el("div", "ws-cc-input"), el("span", "ws-cc-g", "› "), el("span", "ws-caret", " "));
