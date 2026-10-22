@@ -1,0 +1,1809 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control del taller</title>
+<!-- Template: build inlines tokens.css + screens.css at CSS (for the mini preview), every
+     episode as <script type="application/json" id="episodes">[…]</script> at EPISODES,
+     and nav.js, render.js, animate.js, control.js at JS. No external references. -->
+<style>
+/* Every colour, font and size of the stage. When Cursor or the terminal change, edit here.
+   Sizes are for the fixed 1600x900 canvas (the stage scales it). */
+:root {
+  /* canvas */
+  --ws-w: 1600px;
+  --ws-h: 900px;
+
+  /* fonts */
+  --ws-font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ws-font-mono: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+  --ws-fs: 15px;          /* Cursor body text */
+  --ws-fs-sm: 13.5px;     /* sidebar, tabs, footers */
+  --ws-fs-xs: 12.5px;     /* section labels, ages */
+  --ws-fs-h4: 19px;       /* say #### heading */
+  --ws-fs-mono: 13.5px;   /* code, chips, zsh */
+  --ws-fs-term: 16px;     /* personal terminal and Claude Code */
+  --ws-lh: 1.6;
+  --ws-lh-mono: 1.55;
+  --ws-lh-tight: 1.3;     /* user label block */
+  --ws-lh-list: 2;        /* file tree, Open Tabs */
+  --ws-caret-w: .6em;     /* terminal caret block */
+
+  /* spacing and radii */
+  --ws-gap: 12px;
+  --ws-pad: 18px;
+  --ws-pad-sm: 8px;
+  --ws-pad-xs: 4px;
+  --ws-radius: 12px;
+  --ws-radius-sm: 6px;
+  --ws-radius-xs: 4px;
+  --ws-line: 1px;
+
+  /* window chrome */
+  --ws-dot: 12px;
+  --ws-dot-r: #ff5f57;
+  --ws-dot-y: #febc2e;
+  --ws-dot-g: #28c840;
+
+  /* Cursor, light theme */
+  --ws-c-bg: #ffffff;
+  --ws-c-side: #f3f3f3;
+  --ws-c-line: #e6e6e6;
+  --ws-c-tx: #1d1d1f;
+  --ws-c-tx2: #3a3a3c;
+  --ws-c-mut: #7a7a7a;
+  --ws-c-faint: #a0a0a0;
+  --ws-c-sel: #e3e3e3;
+  --ws-c-chip: #f2f2f2;
+  --ws-c-code: #efefef;
+  --ws-c-send-bg: #111111;
+  --ws-c-send-fg: #ffffff;
+  --ws-c-plus: #1a7f37;
+  --ws-c-avatar: #8a7b6b;
+  --ws-c-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+  --ws-c-sidebar-w: 250px;
+  --ws-c-right-w: 680px;
+  --ws-c-tree-w: 230px;
+  --ws-c-zsh-h: 400px;
+  --ws-c-opentabs-w: 270px;
+  --ws-c-top-h: 40px;
+  --ws-c-tabs-h: 40px;
+  --ws-c-avatar-s: 26px;
+  --ws-c-send-s: 22px;
+  --ws-c-preview-fs: 28px;
+
+  /* zsh prompt segments inside Cursor (light) */
+  --ws-z-bg: #ffffff;
+  --ws-z-tx: #1d1d1f;
+  --ws-z-apple-bg: #ffffff;
+  --ws-z-apple-fg: #111111;
+  --ws-z-path-bg: #1f4f8f;
+  --ws-z-path-fg: #ffffff;
+  --ws-z-git-bg: #2a8a76;
+  --ws-z-git-fg: #ffffff;
+  --ws-z-sys-bg: #8e1f6f;
+  --ws-z-sys-fg: #ffffff;
+  --ws-z-time-bg: transparent;
+  --ws-z-time-fg: #1d1d1f;
+  --ws-z-fill: #7a7a7a;
+  --ws-z-path-icon: #ffffff;
+  --ws-z-sys-icon: #ffffff;
+  --ws-z-time-icon: #1d1d1f;
+  --ws-z-ok: #2ea043;
+  --ws-z-out: #3a3a3c;
+
+  /* personal terminal (dark) */
+  --ws-t-bg: #252830;
+  --ws-t-bar: #2d3139;
+  --ws-t-bar-fg: #c9ced8;
+  --ws-t-tx: #d7dae0;
+  --ws-t-mut: #8b919c;
+  --ws-t-cmd: #79c0ff;
+  --ws-t-ok: #7ee000;
+  --ws-t-caret: #d7dae0;
+  --ws-t-apple-bg: #d0d4db;
+  --ws-t-apple-fg: #111111;
+  --ws-t-path-bg: #86a6cc;
+  --ws-t-path-fg: #ffffff;
+  --ws-t-path-icon: #ffffff;
+  --ws-t-git-bg: #2f8f8a;
+  --ws-t-git-fg: #ffffff;
+  --ws-t-sys-bg: #b994c9;
+  --ws-t-sys-fg: #1b1b22;
+  --ws-t-sys-icon: #1b1b22;
+  --ws-t-time-bg: #d6d9df;
+  --ws-t-time-fg: #111111;
+  --ws-t-time-icon: #111111;
+  --ws-t-fill: #5d6370;
+  --ws-t-bar-h: 34px;
+  --ws-seg-slant: 8px;
+  --ws-fill-w: 2px;       /* dotted fill between prompt segments */
+  --ws-icon-s: 1em;       /* prompt icons (folder, house, clock), inline SVG */
+  --ws-icon-gap: .4em;    /* space between a prompt icon and its text */
+  --ws-icon-drop: -.14em; /* vertical-align of prompt icons on the text baseline */
+
+  /* Claude Code tab */
+  --ws-cc-accent: #d97757;
+  --ws-cc-ok: #3fb950;
+  --ws-cc-user: #ffa657;  /* the person's turn, as in the cc-* mockups */
+  --ws-cc-bang: #f778ba;  /* a `!` command the person runs in bash mode */
+  --ws-cc-box: #5d6370;
+  --ws-cc-gutter: 2ch;    /* width of the ⏺ / ⎿ / > gutter */
+
+  /* browser window of a page step */
+  --ws-p-w: 92%;
+  --ws-p-h: 90%;
+  --ws-p-bg: #ffffff;
+  --ws-p-bar: #f1f1f3;
+
+  /* macOS approval window */
+  --ws-a-scrim: rgba(0, 0, 0, .28);
+  --ws-a-bg: #ececec;
+  --ws-a-tx: #1d1d1f;
+  --ws-a-mut: #4a4a4c;
+  --ws-a-line: #d2d2d2;
+  --ws-a-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+  --ws-a-w: 560px;
+  --ws-a-radius: 14px;
+  --ws-a-icon: 56px;
+  --ws-a-icon-bg: #2d6cdf;
+  --ws-a-btn-bg: #ffffff;
+  --ws-a-btn-fg: #1d1d1f;
+  --ws-a-ok-bg: #0a6cf0;
+  --ws-a-ok-fg: #ffffff;
+  --ws-a-fs-title: 17px;
+  --ws-a-fs: 14px;
+  --ws-a-lh: 1.45;
+  /* the tool's own approval panel (alert.js): light or dark like macOS, because its page follows the system too */
+  --ws-r-bg: #ececec;
+  --ws-r-tx: #1d1d1f;
+  --ws-r-bar-tx: #4a4a4c;
+  --ws-r-btn-bg: #ffffff;
+  --ws-r-btn-line: #c8c8c8;
+  --ws-r-bar: 28px;         /* title bar */
+  --ws-r-foot: 58px;        /* the button bar under the page (alert.js `bar`) */
+  --ws-r-btn-h: 28px;
+  --ws-r-btn-cancel: 90px;
+  --ws-r-btn-ok: 130px;
+  --ws-r-fs-btn: 13px;
+
+  /* chapter card */
+  --ws-k-grad: linear-gradient(135deg, #2d6cdf, #7a4fe0);
+  --ws-k-fg: #ffffff;
+  --ws-k-fs-kicker: 22px;
+  --ws-k-fs-title: 88px;
+  --ws-k-fs-sub: 30px;
+  --ws-k-pad: 140px;
+  --ws-k-sub-w: 1100px;
+  --ws-k-kicker-track: .12em;
+  --ws-k-kicker-op: .8;
+  --ws-k-sub-op: .9;
+  --ws-k-title-mt: .2em;
+  --ws-k-title-mb: .3em;
+  --ws-k-lh-title: 1.05;
+  --ws-k-lh-sub: 1.35;
+  --ws-k-pitch-mt: 56px;
+  --ws-k-pitch-w: 1180px;
+  --ws-k-pitch-pad: 28px 36px;
+  --ws-k-pitch-bg: rgba(255, 255, 255, .12);
+  --ws-k-pitch-radius: 14px;
+  --ws-k-fs-pitch-k: 18px;
+  --ws-k-fs-pitch: 30px;
+  --ws-k-lh-pitch: 1.3;
+  --ws-k-pitch-gap: 8px;
+  --ws-k-pitch-row-gap: 22px;
+}
+
+/* Stage screens: card, cursor-full, cursor-agent, terminal, claude-code, approve overlay.
+   Values come from tokens.css; this file only lays things out. */
+.ws-screen {
+  position: relative; box-sizing: border-box; width: var(--ws-w); height: var(--ws-h);
+  overflow: hidden; font-family: var(--ws-font-ui);
+}
+.ws-screen *, .ws-screen *::before, .ws-screen *::after { box-sizing: border-box; }
+.ws-empty { background: var(--ws-c-bg); }
+.ws-mut { color: var(--ws-c-mut); }
+
+/* bottom-anchored area: short content on top, long content shows its newest part */
+.ws-scroll { display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; min-height: 0; }
+.ws-flow { flex: 1 0 auto; }
+
+.ws-dots { display: flex; gap: calc(var(--ws-dot) / 2); }
+.ws-dot { display: inline-block; width: var(--ws-dot); height: var(--ws-dot); border-radius: 50%; }
+.ws-dot-r { background: var(--ws-dot-r); }
+.ws-dot-y { background: var(--ws-dot-y); }
+.ws-dot-g { background: var(--ws-dot-g); }
+
+/* ---------- chapter card ---------- */
+.ws-card { background: var(--ws-k-grad); color: var(--ws-k-fg); display: flex; align-items: center; }
+.ws-card-inner { padding: 0 var(--ws-k-pad); }
+.ws-card-kicker { font-size: var(--ws-k-fs-kicker); letter-spacing: var(--ws-k-kicker-track); text-transform: uppercase; opacity: var(--ws-k-kicker-op); }
+.ws-card-title { margin: var(--ws-k-title-mt) 0 var(--ws-k-title-mb); font-size: var(--ws-k-fs-title); line-height: var(--ws-k-lh-title); font-weight: 700; }
+.ws-card-sub { margin: 0; font-size: var(--ws-k-fs-sub); opacity: var(--ws-k-sub-op); max-width: var(--ws-k-sub-w); line-height: var(--ws-k-lh-sub); }
+.ws-card-pitch { margin-top: var(--ws-k-pitch-mt); max-width: var(--ws-k-pitch-w); padding: var(--ws-k-pitch-pad);
+  background: var(--ws-k-pitch-bg); border-radius: var(--ws-k-pitch-radius); }
+.ws-card-pitch-k { font-size: var(--ws-k-fs-pitch-k); letter-spacing: var(--ws-k-kicker-track); text-transform: uppercase;
+  opacity: var(--ws-k-kicker-op); margin-bottom: var(--ws-k-pitch-gap); }
+.ws-card-pitch-ask, .ws-card-pitch-does { font-size: var(--ws-k-fs-pitch); line-height: var(--ws-k-lh-pitch); }
+.ws-card-pitch-ask { font-style: italic; margin-bottom: var(--ws-k-pitch-row-gap); }
+
+/* ---------- Cursor ---------- */
+.ws-cursor { display: flex; background: var(--ws-c-bg); color: var(--ws-c-tx); font-size: var(--ws-fs); line-height: var(--ws-lh); }
+.ws-sb {
+  width: var(--ws-c-sidebar-w); flex: none; background: var(--ws-c-side); border-right: var(--ws-line) solid var(--ws-c-line);
+  display: flex; flex-direction: column; padding: var(--ws-gap) 0; font-size: var(--ws-fs-sm); color: var(--ws-c-tx2);
+}
+.ws-sb .ws-dots { padding: 0 var(--ws-gap) var(--ws-pad); }
+.ws-sb-nav { padding: var(--ws-pad-xs) var(--ws-gap); }
+.ws-sb-sec { padding: var(--ws-pad) var(--ws-gap) var(--ws-pad-xs); color: var(--ws-c-mut); font-size: var(--ws-fs-xs); }
+.ws-sb-repo { padding: var(--ws-pad-xs) var(--ws-gap); }
+.ws-sb-chat {
+  display: flex; gap: var(--ws-pad-sm); justify-content: space-between;
+  margin: 0 var(--ws-pad-sm); padding: var(--ws-pad-xs) var(--ws-pad-sm) var(--ws-pad-xs) var(--ws-pad);
+  border-radius: var(--ws-radius-sm);
+}
+.ws-sb-chat-t { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ws-sb-chat b { font-weight: 400; color: var(--ws-c-mut); flex: none; }
+.ws-sb-chat.ws-on { background: var(--ws-c-sel); color: var(--ws-c-tx); }
+.ws-me { margin-top: auto; padding: var(--ws-gap); display: flex; align-items: center; gap: var(--ws-pad-sm); line-height: var(--ws-lh-tight); }
+.ws-avatar { width: var(--ws-c-avatar-s); height: var(--ws-c-avatar-s); border-radius: 50%; background: var(--ws-c-avatar); flex: none; }
+
+.ws-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ws-top {
+  height: var(--ws-c-top-h); flex: none; display: flex; align-items: center; padding: 0 var(--ws-pad);
+  font-size: var(--ws-fs-sm); color: var(--ws-c-tx2);
+}
+.ws-top-r { margin-left: auto; color: var(--ws-c-mut); font-size: var(--ws-fs-xs); white-space: pre; }
+.ws-conv { flex: 1; padding: 0 var(--ws-pad); }
+.ws-conv .ws-flow { display: flex; flex-direction: column; gap: var(--ws-gap); padding-bottom: var(--ws-gap); }
+.ws-ask {
+  border: var(--ws-line) solid var(--ws-c-line); border-radius: var(--ws-radius); padding: var(--ws-gap) var(--ws-gap) var(--ws-pad-sm);
+  box-shadow: var(--ws-c-shadow); background: var(--ws-c-bg); white-space: pre-wrap;
+}
+.ws-ask-row { display: flex; align-items: center; gap: var(--ws-gap); margin-top: var(--ws-pad-sm); color: var(--ws-c-mut); font-size: var(--ws-fs-sm); white-space: normal; }
+.ws-send {
+  margin-left: auto; width: var(--ws-c-send-s); height: var(--ws-c-send-s); border-radius: 50%;
+  background: var(--ws-c-send-bg); color: var(--ws-c-send-fg); display: flex; align-items: center; justify-content: center; font-size: var(--ws-fs-xs);
+}
+.ws-worked { color: var(--ws-c-mut); }
+.ws-tool {
+  align-self: flex-start; font-family: var(--ws-font-mono); font-size: var(--ws-fs-mono); color: var(--ws-c-tx2);
+  background: var(--ws-c-chip); border-radius: var(--ws-radius-sm); padding: var(--ws-pad-xs) var(--ws-pad-sm);
+  white-space: pre-wrap; word-break: break-word;
+}
+.ws-ran { display: flex; flex-direction: column; gap: var(--ws-pad-xs); }
+.ws-ran-out {
+  font-family: var(--ws-font-mono); font-size: var(--ws-fs-mono); line-height: var(--ws-lh-mono); color: var(--ws-z-out);
+  border: var(--ws-line) solid var(--ws-c-line); border-radius: var(--ws-radius-sm); padding: var(--ws-pad-sm) var(--ws-gap);
+}
+.ws-ran-out .ws-out { white-space: pre-wrap; word-break: break-word; }
+.ws-say p, .ws-say ul, .ws-say h4 { margin: 0 0 var(--ws-pad-sm); }
+.ws-say > :last-child { margin-bottom: 0; }
+.ws-say h4 { font-size: var(--ws-fs-h4); margin-top: var(--ws-pad-xs); }
+.ws-say ul { padding-left: var(--ws-pad); }
+.ws-md-table { overflow-x: auto; margin: 0 0 var(--ws-pad-sm); }
+.ws-md-table table { border-collapse: collapse; font-size: var(--ws-fs-sm); }
+.ws-md-table th, .ws-md-table td {
+  border: var(--ws-line) solid var(--ws-c-line); padding: var(--ws-pad-xs) var(--ws-pad-sm); text-align: left;
+  white-space: nowrap;
+}
+.ws-md-table th { font-weight: 600; }
+.ws-cursor code {
+  font-family: var(--ws-font-mono); font-size: var(--ws-fs-mono); background: var(--ws-c-code);
+  border-radius: var(--ws-radius-xs); padding: 0 var(--ws-pad-xs);
+}
+.ws-followup {
+  flex: none; margin: var(--ws-pad-sm) var(--ws-pad) var(--ws-pad-xs); border: var(--ws-line) solid var(--ws-c-line);
+  border-radius: var(--ws-radius); padding: var(--ws-pad-sm) var(--ws-gap); display: flex; color: var(--ws-c-faint);
+  font-size: var(--ws-fs-sm); box-shadow: var(--ws-c-shadow); white-space: pre;
+}
+.ws-followup-m { margin-left: auto; color: var(--ws-c-mut); }
+.ws-foot { flex: none; display: flex; gap: var(--ws-pad); padding: var(--ws-pad-xs) var(--ws-pad) var(--ws-gap); color: var(--ws-c-mut); font-size: var(--ws-fs-sm); }
+
+/* right panel (cursor-full) */
+.ws-rp { width: var(--ws-c-right-w); flex: none; border-left: var(--ws-line) solid var(--ws-c-line); display: flex; flex-direction: column; font-size: var(--ws-fs-sm); }
+.ws-rp-tabs { height: var(--ws-c-tabs-h); flex: none; display: flex; align-items: center; gap: var(--ws-gap); padding: 0 var(--ws-gap); color: var(--ws-c-mut); }
+.ws-tab.ws-on { background: var(--ws-c-chip); border-radius: var(--ws-radius-sm); padding: 0 var(--ws-pad-sm); font-style: italic; color: var(--ws-c-tx); }
+.ws-rp-sub {
+  height: var(--ws-c-tabs-h); flex: none; display: flex; align-items: center; padding: 0 var(--ws-gap);
+  color: var(--ws-c-tx2); border-top: var(--ws-line) solid var(--ws-c-line); border-bottom: var(--ws-line) solid var(--ws-c-line); white-space: pre;
+}
+.ws-rp-sub-r { margin-left: auto; display: flex; gap: var(--ws-pad-sm); color: var(--ws-c-mut); }
+.ws-pill { background: var(--ws-c-chip); border-radius: var(--ws-radius-sm); padding: 0 var(--ws-pad-sm); color: var(--ws-c-tx); }
+.ws-rp-files { flex: 1; min-height: 0; display: flex; }
+.ws-preview { flex: 1; padding: var(--ws-pad); }
+.ws-preview h1 { margin: var(--ws-pad-sm) 0 0; font-size: var(--ws-c-preview-fs); }
+.ws-tree { width: var(--ws-c-tree-w); flex: none; border-left: var(--ws-line) solid var(--ws-c-line); padding: var(--ws-gap) var(--ws-pad-sm); color: var(--ws-c-tx2); line-height: var(--ws-lh-list); }
+.ws-tree-h { color: var(--ws-c-mut); padding: 0 var(--ws-pad-xs); }
+.ws-tree-i { padding: 0 var(--ws-pad-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-zsh { height: var(--ws-c-zsh-h); flex: none; border-top: var(--ws-line) solid var(--ws-c-line); background: var(--ws-z-bg); display: flex; flex-direction: column; }
+.ws-zsh-tabs { flex: none; display: flex; align-items: center; gap: var(--ws-gap); padding: var(--ws-pad-sm) var(--ws-gap) 0; color: var(--ws-c-mut); }
+.ws-zsh-title { flex: none; padding: var(--ws-pad-sm) var(--ws-gap); color: var(--ws-c-tx2); }
+.ws-zsh-body {
+  flex: 1; padding: 0 var(--ws-gap) var(--ws-pad-sm); font-family: var(--ws-font-mono); font-size: var(--ws-fs-mono);
+  line-height: var(--ws-lh-mono); color: var(--ws-z-tx);
+}
+
+/* Open Tabs column (cursor-agent) */
+.ws-opentabs { width: var(--ws-c-opentabs-w); flex: none; padding: var(--ws-c-top-h) var(--ws-pad) var(--ws-pad); color: var(--ws-c-tx2); font-size: var(--ws-fs-sm); line-height: var(--ws-lh-list); }
+.ws-ot-h { color: var(--ws-c-mut); font-size: var(--ws-fs-xs); margin-top: var(--ws-gap); }
+.ws-ot-h:first-child { margin-top: 0; }
+.ws-plus { color: var(--ws-c-plus); }
+
+/* ---------- shell lines (zsh in Cursor and personal terminal) ---------- */
+.ws-prompt { display: flex; align-items: center; white-space: nowrap; margin-top: var(--ws-pad-xs); }
+.ws-seg {
+  display: inline-block; padding: 0 calc(var(--ws-seg-slant) + var(--ws-pad-xs));
+  clip-path: polygon(var(--ws-seg-slant) 0, 100% 0, calc(100% - var(--ws-seg-slant)) 100%, 0 100%);
+  margin-right: calc(var(--ws-seg-slant) / -2);
+}
+.ws-seg-apple { clip-path: polygon(0 0, 100% 0, calc(100% - var(--ws-seg-slant)) 100%, 0 100%); }
+.ws-seg-fill { flex: 1; align-self: center; height: 0; margin: 0 var(--ws-pad-sm); border-bottom: var(--ws-fill-w) dotted; }
+.ws-ico { display: inline-block; width: var(--ws-icon-s); height: var(--ws-icon-s); vertical-align: var(--ws-icon-drop); }
+.ws-ico-folder { margin-right: var(--ws-icon-gap); }
+.ws-ico-house, .ws-ico-clock { margin-left: var(--ws-icon-gap); }
+.ws-path-last { font-weight: 700; }
+.ws-cmdline, .ws-out { white-space: pre-wrap; word-break: break-word; }
+.ws-caret { display: inline-block; width: var(--ws-caret-w); }
+
+.ws-zsh .ws-seg-apple { background: var(--ws-z-apple-bg); color: var(--ws-z-apple-fg); }
+.ws-zsh .ws-seg-path { background: var(--ws-z-path-bg); color: var(--ws-z-path-fg); }
+.ws-zsh .ws-seg-git { background: var(--ws-z-git-bg); color: var(--ws-z-git-fg); }
+.ws-zsh .ws-seg-sys { background: var(--ws-z-sys-bg); color: var(--ws-z-sys-fg); }
+.ws-zsh .ws-seg-time { background: var(--ws-z-time-bg); color: var(--ws-z-time-fg); }
+.ws-zsh .ws-seg-fill { color: var(--ws-z-fill); }
+.ws-zsh .ws-ico-folder { color: var(--ws-z-path-icon); }
+.ws-zsh .ws-ico-house { color: var(--ws-z-sys-icon); }
+.ws-zsh .ws-ico-clock { color: var(--ws-z-time-icon); }
+.ws-zsh .ws-caret-prompt { color: var(--ws-z-ok); font-weight: 700; }
+.ws-zsh .ws-out { color: var(--ws-z-out); }
+.ws-zsh .ws-caret { outline: var(--ws-line) solid var(--ws-z-tx); }
+
+/* ---------- terminal theme (personal terminal and Claude Code) ---------- */
+.ws-term-theme { background: var(--ws-t-bg); color: var(--ws-t-tx); display: flex; flex-direction: column; font-size: var(--ws-fs-term); }
+.ws-tbar {
+  height: var(--ws-t-bar-h); flex: none; background: var(--ws-t-bar); color: var(--ws-t-bar-fg); display: flex;
+  align-items: center; gap: var(--ws-gap); padding: 0 var(--ws-gap); font-size: var(--ws-fs-sm);
+}
+.ws-term-body, .ws-cc-body { flex: 1; padding: var(--ws-pad-sm) var(--ws-gap); font-family: var(--ws-font-mono); line-height: var(--ws-lh-mono); }
+.ws-term-theme .ws-seg-apple { background: var(--ws-t-apple-bg); color: var(--ws-t-apple-fg); }
+.ws-term-theme .ws-seg-path { background: var(--ws-t-path-bg); color: var(--ws-t-path-fg); }
+.ws-term-theme .ws-seg-git { background: var(--ws-t-git-bg); color: var(--ws-t-git-fg); }
+.ws-term-theme .ws-seg-sys { background: var(--ws-t-sys-bg); color: var(--ws-t-sys-fg); }
+.ws-term-theme .ws-seg-time { background: var(--ws-t-time-bg); color: var(--ws-t-time-fg); }
+.ws-term-theme .ws-seg-fill { color: var(--ws-t-fill); }
+.ws-term-theme .ws-ico-folder { color: var(--ws-t-path-icon); }
+.ws-term-theme .ws-ico-house { color: var(--ws-t-sys-icon); }
+.ws-term-theme .ws-ico-clock { color: var(--ws-t-time-icon); }
+.ws-term-theme .ws-caret-prompt { color: var(--ws-t-ok); font-weight: 700; }
+.ws-term-theme .ws-cmd { color: var(--ws-t-cmd); }
+.ws-term-theme .ws-caret { background: var(--ws-t-caret); }
+.ws-plain-say p, .ws-plain-say ul, .ws-plain-say h4 { margin: 0; font-size: inherit; }
+.ws-plain-say ul { padding-left: var(--ws-pad); }
+.ws-term-theme code { font-family: inherit; color: var(--ws-t-cmd); }
+
+/* Claude Code transcript */
+.ws-cc-body .ws-flow { display: flex; flex-direction: column; gap: var(--ws-gap); }
+.ws-cc-head {
+  align-self: flex-start; border: var(--ws-line) solid var(--ws-cc-accent); border-radius: var(--ws-radius-sm);
+  padding: var(--ws-pad-sm) var(--ws-pad); margin-bottom: var(--ws-pad-sm);
+}
+.ws-cc-head .ws-mut { color: var(--ws-t-mut); }
+.ws-cc-brand { color: var(--ws-cc-accent); font-weight: 700; }
+.ws-cc-line { display: flex; white-space: pre-wrap; word-break: break-word; }
+.ws-cc-g { flex: none; white-space: pre; width: var(--ws-cc-gutter); }
+.ws-cc-ask { color: var(--ws-cc-user); }
+.ws-cc-tool .ws-cc-g, .ws-cc-say > .ws-cc-g { color: var(--ws-cc-ok); }
+.ws-cc-out { color: var(--ws-t-mut); padding-left: var(--ws-cc-gutter); }
+.ws-cc-bang-cmd { color: var(--ws-cc-bang); }
+.ws-cc-bang-cmd .ws-cc-g { font-weight: 700; }
+.ws-cc-worked { color: var(--ws-cc-accent); }
+.ws-cc-md p, .ws-cc-md ul, .ws-cc-md h4 { margin: 0 0 var(--ws-pad-xs); font-size: inherit; }
+.ws-cc-md ul { padding-left: var(--ws-pad); }
+.ws-cc-input {
+  flex: none; display: flex; margin: 0 var(--ws-gap) var(--ws-gap); padding: var(--ws-pad-sm) var(--ws-gap);
+  border: var(--ws-line) solid var(--ws-cc-box); border-radius: var(--ws-radius-sm); font-family: var(--ws-font-mono);
+}
+
+/* ---------- macOS approval window ---------- */
+.ws-approve { position: absolute; inset: 0; background: var(--ws-a-scrim); display: flex; align-items: center; justify-content: center; font-family: var(--ws-font-ui); }
+.ws-approve[hidden] { display: none; }
+.ws-page { position: absolute; inset: 0; background: var(--ws-a-scrim); display: flex; align-items: center; justify-content: center; }
+.ws-page[hidden] { display: none; }
+.ws-page-win {
+  width: var(--ws-p-w); height: var(--ws-p-h); display: flex; flex-direction: column; background: var(--ws-p-bg);
+  border-radius: var(--ws-radius); box-shadow: var(--ws-a-shadow); overflow: hidden;
+}
+.ws-page-bar {
+  flex: none; display: flex; align-items: center; gap: var(--ws-gap); padding: var(--ws-pad-sm) var(--ws-gap);
+  background: var(--ws-p-bar); border-bottom: var(--ws-line) solid var(--ws-c-line);
+}
+.ws-page-url {
+  flex: 1; font-family: var(--ws-font-ui); font-size: var(--ws-fs-sm); color: var(--ws-c-faint);
+  background: var(--ws-p-bg); border-radius: var(--ws-radius-sm); padding: var(--ws-pad-xs) var(--ws-gap);
+}
+.ws-page-frame { flex: 1; width: 100%; border: 0; background: var(--ws-p-bg); }
+.ws-approve-win {
+  width: var(--ws-a-w); background: var(--ws-a-bg); color: var(--ws-a-tx); border-radius: var(--ws-a-radius);
+  box-shadow: var(--ws-a-shadow); padding: var(--ws-pad); display: flex; flex-direction: column; align-items: center;
+  font-size: var(--ws-a-fs); line-height: var(--ws-a-lh);
+}
+.ws-approve-icon { width: var(--ws-a-icon); height: var(--ws-a-icon); border-radius: var(--ws-radius); background: var(--ws-a-icon-bg); margin-bottom: var(--ws-gap); }
+.ws-approve-title { font-weight: 700; font-size: var(--ws-a-fs-title); text-align: center; margin-bottom: var(--ws-pad-sm); }
+.ws-approve-lines {
+  align-self: stretch; color: var(--ws-a-mut); border-top: var(--ws-line) solid var(--ws-a-line); border-bottom: var(--ws-line) solid var(--ws-a-line);
+  padding: var(--ws-pad-sm) 0; margin-bottom: var(--ws-pad); white-space: pre-wrap; word-break: break-word;
+}
+.ws-approve-btns { align-self: stretch; display: flex; gap: var(--ws-gap); }
+.ws-btn {
+  flex: 1; font: inherit; border: var(--ws-line) solid var(--ws-a-line); border-radius: var(--ws-radius-sm);
+  padding: var(--ws-pad-xs) var(--ws-gap); background: var(--ws-a-btn-bg); color: var(--ws-a-btn-fg);
+}
+.ws-btn-ok { background: var(--ws-a-ok-bg); color: var(--ws-a-ok-fg); border-color: var(--ws-a-ok-bg); }
+.ws-approve-real {
+  padding: 0; align-items: stretch; overflow: hidden; background: var(--ws-r-bg); color: var(--ws-r-tx);
+  border-radius: var(--ws-radius);
+}
+.ws-approve-bar {
+  flex: none; height: var(--ws-r-bar); display: flex; align-items: center; gap: var(--ws-gap); padding: 0 var(--ws-gap);
+}
+.ws-approve-bar-title { font-size: var(--ws-r-fs-btn); font-weight: 600; color: var(--ws-r-bar-tx); }
+.ws-approve-page { display: block; width: 100%; border: 0; background: transparent; color-scheme: light dark; }
+.ws-approve-real .ws-approve-btns {
+  flex: none; height: var(--ws-r-foot); align-items: center; justify-content: flex-end; padding: 0 24px;
+}
+.ws-approve-real .ws-btn {
+  flex: none; height: var(--ws-r-btn-h); padding: 0; font-size: var(--ws-r-fs-btn); border-radius: var(--ws-radius-sm);
+  background: var(--ws-r-btn-bg); color: var(--ws-r-tx); border-color: var(--ws-r-btn-line);
+}
+.ws-approve-real .ws-btn-cancel { width: var(--ws-r-btn-cancel); }
+.ws-approve-real .ws-btn-ok { width: var(--ws-r-btn-ok); }
+@media (prefers-color-scheme: dark) {
+  .ws-approve-real { --ws-r-bg: #1e1e1e; --ws-r-tx: #f5f5f7; --ws-r-bar-tx: #c7c7cc; --ws-r-btn-bg: #3a3a3c; --ws-r-btn-line: #3a3a3c; }
+}
+
+</style>
+<style>
+  html, body { margin: 0; background: #0f1014; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif; color: #e8e8ee; }
+  [hidden] { display: none !important; }
+  .top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; font-size: 13px; }
+  .top h1 { font-size: 14px; margin: 0; font-weight: 600; flex: 1; }
+  .btn { font: inherit; color: #e8e8ee; background: #23242c; border: 1px solid #33343e; border-radius: 9px; padding: 7px 12px; cursor: pointer; }
+  .btn.primary { background: #2d6cdf; border-color: #2d6cdf; font-weight: 700; color: #fff; }
+  .banner { margin: 0 16px 10px; padding: 10px 14px; border-radius: 9px; background: #4a2a12; border: 1px solid #a8641f; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .banner span { flex: 1; font-weight: 600; }
+  .ctl { background: #16171c; border-radius: 12px; margin: 0 16px 16px; padding: 16px; display: grid; grid-template-columns: 240px 1fr 280px; gap: 14px; font-size: 12px; }
+  .ctl .col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .ctl .lbl { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #8b8b98; }
+  .ctl .ch { padding: 6px 8px; border-radius: 7px; color: #b9b9c6; display: flex; justify-content: space-between; gap: 6px; cursor: pointer; }
+  .ctl .ch.done { color: #6f6f7c; }
+  .ctl .ch.on { background: #2d6cdf; color: #fff; }
+  .ctl .ch small { opacity: .7; white-space: nowrap; }
+  .ctl .stp { padding: 3px 8px 3px 22px; color: #8b8b98; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ctl .stp.on { color: #fff; }
+  .ctl .stp.on:before { content: "▶ "; margin-left: -12px; color: #7ee787; }
+  .ctl .stage { border: 1px solid #2c2d35; border-radius: 9px; overflow: hidden; }
+  .ctl .stage .t { font-size: 10px; color: #8b8b98; padding: 5px 8px; background: #1d1e24; display: flex; justify-content: space-between; }
+  .ctl .stage .live { color: #ff6b6b; }
+  .ctl .stage .off { color: #8b8b98; }
+  /* mini preview: the real 1600x900 render, scaled down by control.js */
+  .ctl .mini { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden; }
+  .ctl #mini-canvas { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; transform-origin: 0 0; pointer-events: none; }
+  .ctl .mini-black { position: absolute; inset: 0; background: rgba(0, 0, 0, .85); color: #8b8b98; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .ctl .next { min-height: 56px; border-radius: 7px; background: linear-gradient(135deg, #2d6cdf, #7a4fe0); display: flex; align-items: center; padding: 0 12px; font-weight: 700; font-size: 13px; }
+  .ctl .btns { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
+  .ctl .b { font: inherit; color: #e8e8ee; background: #23242c; border: 1px solid #33343e; border-radius: 9px; padding: 9px 12px; text-align: center; min-width: 64px; cursor: pointer; }
+  .ctl .b.big { background: #2d6cdf; border-color: #2d6cdf; min-width: 90px; font-weight: 700; }
+  .ctl .b.big.on { background: #1f8f4e; border-color: #1f8f4e; }
+  .ctl .b kbd { display: block; font: 10px Menlo, monospace; color: #8b8b98; margin-top: 3px; }
+  .ctl .b.big kbd { color: #cfe0ff; }
+  .ctl .meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: #8b8b98; font-size: 11px; flex-wrap: wrap; }
+  .ctl .meta select, .ctl .jump select { font: inherit; color: #e8e8ee; background: #23242c; border: 1px solid #33343e; border-radius: 6px; padding: 2px 4px; }
+  .ctl .meta .b { min-width: 0; padding: 4px 8px; }
+  .ctl .meta .b.on { background: #000; border-color: #ff6b6b; color: #ff6b6b; }
+  .ctl .jump { display: flex; flex-direction: column; gap: 6px; }
+  .ctl .jump select { width: 100%; }
+  .ctl .notes { background: #1d1e24; border-radius: 9px; padding: 10px; line-height: 1.55; color: #d9d9e2; white-space: pre-wrap; }
+  .ctl .src { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; color: #8b8b98; font-size: 11px; }
+  .ctl .pill { display: inline-block; background: #23242c; border: 1px solid #33343e; border-radius: 99px; padding: 2px 8px; font-size: 10.5px; }
+  .ctl .pill.src-real { border-color: #1f8f4e; color: #7ee787; }
+  .ctl .pill.src-inferido { border-color: #a8641f; color: #f0b072; }
+  .ctl .q { background: #1d1e24; border-radius: 9px; padding: 10px; color: #b9b9c6; line-height: 1.5; }
+  .ctl .q b { color: #e8e8ee; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="ws-control">
+  <div class="top">
+    <h1>Control del taller · esta ventana no se comparte</h1>
+    <span id="estimate"></span>
+    <button class="btn primary" id="open-stage" type="button">Abrir escenario</button>
+  </div>
+  <div class="banner" id="banner" hidden>
+    <span id="banner-text"></span>
+    <button class="btn primary" id="reopen-stage" type="button" hidden>Reabrir</button>
+  </div>
+
+  <div class="ctl">
+    <div class="col">
+      <div class="lbl" id="episode-label"></div>
+      <div id="chapters"></div>
+      <div class="lbl" style="margin-top:6px">Saltar a</div>
+      <div class="jump">
+        <select id="episode-select" aria-label="Episodio"></select>
+        <select id="chapter-select" aria-label="Capítulo"></select>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="stage">
+        <div class="t"><span>Escenario · lo que ve la gente</span><span id="live" class="off"></span></div>
+        <div class="mini" id="mini">
+          <div id="mini-canvas"></div>
+          <div class="mini-black" id="mini-black" hidden>Pantalla en negro</div>
+        </div>
+      </div>
+      <div class="lbl">Lo que viene</div>
+      <div class="next" id="next"></div>
+      <div class="btns">
+        <button class="b" type="button" data-key="ArrowLeft" data-shift>⏮<kbd>⇧ ←</kbd>capítulo</button>
+        <button class="b" type="button" data-key="ArrowLeft">◀<kbd>←</kbd>atrás 1</button>
+        <button class="b big" type="button" id="play" data-key=" ">⏯<kbd>espacio</kbd>play / pausa</button>
+        <button class="b" type="button" data-key="ArrowRight">▶<kbd>→</kbd>adelante 1</button>
+        <button class="b" type="button" data-key="ArrowRight" data-shift>⏭<kbd>⇧ →</kbd>capítulo</button>
+      </div>
+      <div class="meta">
+        <label>Velocidad del tipeo:
+          <select id="speed-select">
+            <option value="0.5">0.5×</option>
+            <option value="1">1×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+        </label>
+        <span id="clock"></span>
+        <button class="b" type="button" id="blackout" data-key="b">B: pantalla en negro</button>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="lbl">Notas para decir (no se ven)</div>
+      <div class="notes" id="notes-text"></div>
+      <div class="src"><span>Fuente:</span><span class="pill" id="notes-source"></span><span id="notes-skill"></span></div>
+      <div class="lbl">Preguntas que suelen salir</div>
+      <div id="faq" class="col"></div>
+    </div>
+  </div>
+</div>
+<script type="application/json" id="episodes">[{"id":"auditing-repos","series":"cursor","order":5,"title":"auditing-repos","pitch":{"ask":"Auditá este repo","does":"Analiza ocho dimensiones, verifica ejecutando cada hallazgo y escribe un informe local con su nivel de confianza. Frena y espera tu respuesta: recién entonces publica un issue por hallazgo y los pull requests que los cierran."},"skill":{"repo":"teamwayofwork","commit":"a0bc150","date":"2026-10-17"},"workspace":{"repo":"mi-servicio","files":["api","web","docs","README.md"],"chats":[{"title":"Revisar el alcance de devoluciones","age":"1d"}]},"chapters":[{"id":"instalar","title":"Instalar","subtitle":"Una vez por máquina: clonar, enlazar y autenticar gh","screen":"terminal","faq":[{"q":"¿Por qué enlazar y no copiar?","a":"Porque así hay una sola fuente de verdad: tu clon. Cuando lo actualizás, la skill se actualiza sola. Una copia se queda vieja en silencio."},{"q":"¿Qué son ~/.agents y ~/.claude?","a":"Son las carpetas donde cada agente busca skills. Cursor lee la primera; Claude Code lee la segunda, por eso hay dos enlaces. Si solo usás Cursor, alcanza con el primero."},{"q":"¿Puedo instalarla sin enlaces?","a":"Sí: con npx skills add, desde tu clon, y necesitás Node. Pero instala una copia: no se actualiza con git pull, hay que repetir el comando. Y si ya la habías enlazado, te cambia el enlace por la copia."},{"q":"El clone dice «Permission denied», ¿qué hago?","a":"Falta acceso a este repo, que es de otra organización. Pedíselo al equipo dueño; la clave SSH del episodio 0 sirve en cuanto te lo den. Y sobre gh y Jira: son opcionales; sin gh la skill solo escribe el informe local, y sin Jira el resto anda igual."}],"steps":[{"type":"term","cmd":"git clone \u003crepo\u003e ~/skills/teamwayofwork","out":["Cloning into '~/skills/teamwayofwork'..."],"source":"inferido","cwd":"~","notes":"Primero bajamos el repo del equipo. Ojo: es un repo con varias skills adentro, y la que vamos a usar vive en la carpeta skills/auditing-repos. En \u003crepo\u003e va la dirección que te da tu equipo. Necesita red y acceso por SSH. La clave SSH sale del episodio 0, pero el acceso a este repo, que es de otra organización, se lo pedís al equipo dueño: si no te lo dieron, git clone responde «Permission denied» y no es un error tuyo. Paso inferido."},{"type":"term","cmd":"mkdir -p ~/.agents/skills ~/.claude/skills","out":[],"source":"real","cwd":"~","notes":"Creamos las dos carpetas donde los agentes buscan skills, por si no existen. Si ya existen, no pasa nada: el -p lo tolera."},{"type":"term","cmd":"cd ~/skills/teamwayofwork \u0026\u0026 ln -s \"$PWD/skills/auditing-repos\" ~/.agents/skills/auditing-repos","out":[],"source":"real","cwd":"~","notes":"Un enlace simbólico es un acceso directo: la carpeta de la skill sigue estando en tu clon y el agente la ve desde acá. No imprime nada, y está bien. Si el destino ya existe, ln falla; en ese caso mirá a dónde apunta antes de deshacer nada."},{"type":"term","cmd":"ln -s ../../.agents/skills/auditing-repos ~/.claude/skills/auditing-repos","out":[],"source":"real","cwd":"~","notes":"El segundo enlace es solo para Claude Code. Fijate que es relativo y apunta al primero: así hay un único origen. Si usás solo Cursor, podés saltearlo."},{"type":"term","cmd":"head -3 ~/.claude/skills/auditing-repos/SKILL.md","out":["---","name: auditing-repos","description: Use when asked to review, audit, or assess a local repository for code quality, architecture, testability, coverage, security, documentation or resilience — especially when the findings should become GitHub issues and pull requests, or be tracked on a Jira board."],"source":"real","cwd":"~","notes":"La prueba de que quedó bien: leemos el encabezado del SKILL.md pasando por los dos enlaces. Si lo ves, el agente también lo va a ver. Abrí una sesión nueva del agente: una abierta antes no se entera."},{"type":"term","cmd":"~/.agents/skills/auditing-repos/scripts/test-attribution-pattern.sh | tail -3","out":["  ✓ ignored: refactor: rename the codex_parser module","","passed=22 failed=0"],"source":"inferido","cwd":"~","notes":"Una comprobación que viene con la skill: prueba que el detector de atribución dispara en los casos malos y no se confunde con los legítimos. Tiene que terminar en passed=22 failed=0. Inferido: usa rg, que no está en el entorno de la captura."},{"type":"term","cmd":"gh auth login","out":["? What account do you want to log into? GitHub.com","✓ Logged in as \u003ctu-usuario\u003e"],"source":"inferido","cwd":"~","notes":"Esto lo hacés vos, en tu terminal, y es a propósito: es un flujo interactivo con tu cuenta de GitHub, y el agente no debe hacerlo por vos. Sin gh autenticado la skill solo escribe el informe local. Salida inferida.","pause":true},{"type":"term","cmd":"open -e ~/.zshrc","out":[],"source":"inferido","cwd":"~","notes":"Jira es opcional. Si lo querés, abrís tu ~/.zshrc con un editor y agregás JIRA_BASE_URL, JIRA_EMAIL y JIRA_API_TOKEN. Son un secreto: nunca las pegues en el chat. Después reiniciá Cursor. Si falta alguna, Jira se saltea y todo lo demás sigue andando."}]},{"id":"caso-principal","title":"Caso principal","subtitle":"Auditar un repo y frenar en la compuerta","screen":"cursor-full","faq":[{"q":"¿Por qué verifica ejecutando y no solo leyendo?","a":"Porque leer el código y que algo «parezca mal» es una hipótesis, no un hallazgo. Un hallazgo equivocado le cuesta una tarde a una compañera y la confianza en todos los demás."},{"q":"¿Qué es la compuerta?","a":"Es el momento en que la skill frena con el informe y te pregunta qué publicar. Hasta que contestás, no toca GitHub ni Jira. Ojo: es una instrucción de la skill, no un bloqueo técnico."},{"q":"¿Qué pasa con lo que no se pudo verificar?","a":"Se reporta, con su confianza en «unverified», pero no se publica. Así lo ves vos y decidís, sin que le llegue ruido a nadie."},{"q":"¿Por qué agrega AUDIT-REPORT.md al .gitignore?","a":"Porque el informe tiene hallazgos de seguridad y es un borrador hasta que lo aprobás. Con un git add -A se subiría al historial antes de la compuerta."}],"steps":[{"type":"ask","text":"Auditá este repo","source":"inferido","notes":"Dos palabras alcanzan. Lo que cambia con esta skill es que no hace falta explicarle el método: se activa sola con «auditá», «revisá este código» o «chequeá seguridad». Parado en el repo que querés revisar, no en el de la skill."},{"type":"tool","label":"Read · ~/.agents/skills/auditing-repos/SKILL.md","source":"inferido","notes":"Cursor reconoce el pedido y carga la skill. Desde acá el agente sigue un orden fijo: preflight, analizar, verificar, informe local, compuerta, publicar, responder la review. También lee dos referencias obligatorias: verificación y atribución."},{"type":"term","cmd":"~/.agents/skills/auditing-repos/scripts/preflight.sh","out":["── repository ──","git repo                   yes (main)","working tree               clean","default branch             unknown","","── github ──","gh auth                    yes","repo permission            WRITE","issues enabled             true","","── jira (optional) ──","jira                       skipped (missing: JIRA_BASE_URL JIRA_EMAIL JIRA_API_TOKEN)","","── audit report safety ──","AUDIT-REPORT.md            NOT IGNORED in this repo","  →                      the report holds detailed security findings and is a draft until","                           approved. A git add -A would publish it to history before the gate.","  fix                      echo 'AUDIT-REPORT.md' \u003e\u003e .gitignore   (or write to the scratchpad)","","── verification tooling ──","docker                     no — some claims cannot be verified by running them","uv                         yes","rg                         yes","fd                         yes","","ok=1 warnings=2 blocking=0"],"source":"inferido","cwd":"~/mi-servicio","notes":"Primero el preflight: qué hay y qué falta. No escribe nada. Fijate en dos cosas. Una, el aviso de AUDIT-REPORT.md: el informe es un borrador con hallazgos de seguridad y hay que evitar que un git add -A lo suba. Dos, docker en «no»: un faltante opcional no frena la auditoría, pero cambia lo que el agente puede afirmar; sin docker no dirá nada sobre una imagen. Inferido: usa rg, que no está en la captura; la salida sigue la de la documentación."},{"type":"say","md":"Hay git, el árbol está limpio y `gh` está autenticado. Dos avisos:\n- `AUDIT-REPORT.md` no está en el `.gitignore`: lo agrego antes de escribirlo.\n- No hay `docker`: no voy a afirmar nada sobre imágenes.\n\nNo hay `CLAUDE.md`, `AGENTS.md` ni configuración de CI para leer. Sigo con el análisis.","source":"inferido","notes":"El agente no calla lo que no puede hacer: lo dice. Y no se lanza a analizar sin mirar antes el CI y las instrucciones del repo; acá no hay, y lo informa. Es donde más fallan las auditorías: afirmar cosas que el CI privado desmiente."},{"type":"term","cmd":"echo 'AUDIT-REPORT.md' \u003e\u003e .gitignore","out":[],"source":"real","cwd":"~/mi-servicio","notes":"Esto es lo que dice la skill: confirmar que el informe no se pueda commitear antes de escribirlo. Una línea al .gitignore, y listo."},{"type":"tool","label":"Ran · análisis de ocho dimensiones · api/ y web/","source":"inferido","notes":"El agente recorre las ocho dimensiones: código limpio, arquitectura, testabilidad, cobertura, seguridad, cadena de suministro, resiliencia y documentación. Anota hallazgos, todavía no publica nada."},{"type":"say","md":"Encontré **tres candidatos**. Ninguno es un hallazgo todavía: los verifico ejecutando.\n- Un descuento mayor al 100% en `orders.py`\n- La paginación de `stats.py`\n- El contador de `counter.py`","source":"inferido","notes":"Remarcá la palabra «candidatos». Un hallazgo sin verificar es una suposición con una cita; hasta que algo lo ejecuta, no pasa a ser hallazgo.","pause":true},{"type":"term","cmd":"python3 -c \"from mi_servicio import orders; orders.create_order('A1', [(100, 1)]); print(orders.order_total('A1', discount_pct=150))\"","out":["-50.0"],"source":"real","cwd":"~/mi-servicio/api","notes":"Primer candidato, probado de verdad: un pedido de 100 con 150% de descuento. Fijate el resultado: da menos 50. El total queda negativo; esto sí es un hallazgo, con evidencia que cualquiera puede repetir."},{"type":"term","cmd":"python3 -c \"from mi_servicio import stats; print(stats.paginate([1, 2, 3, 4], 1, 2))\"","out":["[3, 4]"],"source":"real","cwd":"~/mi-servicio/api","notes":"Segundo candidato: el docstring dice que las páginas empiezan en 1, pero pedir la página 1 devuelve la segunda, 3 y 4. Otra vez, evidencia ejecutada, no opinión."},{"type":"tool","label":"Ran · counter.hit() desde 8 hilos · el total dio lo esperado","source":"inferido","notes":"Del tercer candidato, la carrera del contador, el agente intentó reproducirla y no pudo. Eso no lo descarta, pero tampoco lo deja pasar como cierto: va al informe como «unverified». Esta es la honestidad que buscamos."},{"type":"tool","label":"Write · AUDIT-REPORT.md","source":"inferido","notes":"Un archivo local, que ya está ignorado. Cada hallazgo lleva dimensión, severidad, evidencia, por qué importa, arreglo propuesto y, obligatoria, la confianza."},{"type":"say","md":"#### Informe listo: AUDIT-REPORT.md\n#### F-01 · Un descuento de más del 100% deja el total negativo\n**Dimensión:** clean code · **Severidad:** media · **Confianza:** verified by execution\n#### F-02 · La paginación dice «desde 1» pero salta una página\n**Dimensión:** documentación · **Severidad:** baja · **Confianza:** verified by execution\n#### F-03 · Dos pedidos a la vez pueden contarse como uno\n**Dimensión:** resiliencia · **Severidad:** baja · **Confianza:** unverified, reasoning only\n\nF-03 queda **sin verificar**: lo reporto, pero no lo publico. No toqué GitHub. **¿Cuáles publico?**","source":"inferido","notes":"Este es el momento clave del episodio. El agente frena y pregunta; no publicó nada. Leé la confianza de cada uno y señalá que F-03 dice «unverified»: se muestra, pero no sale. Recordá el límite: la compuerta es una instrucción de la skill, no un bloqueo técnico; por eso conviene leer el informe vos.","pause":true},{"type":"ask","text":"Publicá F-01 y F-02. F-03 no.","source":"inferido","notes":"Esta es la decisión humana, en una frase y en el chat. La skill no sigue hasta que contestás. Si hubieras dicho «ninguno», el informe se queda local y listo."},{"type":"tool","label":"Ran · sweep.sh main","source":"inferido","notes":"Antes de pushear la skill corre el sweep: 40 caracteres, tooling local, atribución y SHAs de actions. Vamos a verlo con detalle en el próximo capítulo, con un caso que falla."},{"type":"tool","label":"Ran · gh issue create · F-01 y F-02","source":"inferido","notes":"Un issue por hallazgo, con el comando y su salida como evidencia. Es el agente, con gh, quien publica; la skill le indica frenar y preguntar antes, y eso ya pasó."},{"type":"tool","label":"Ran · gh pr create · fix/descuento-sin-tope y fix/paginacion-desde-1","source":"inferido","notes":"Los PRs se agrupan por cambio que se puede mergear y revertir solo. Acá F-01 y F-02 tocan archivos distintos, así que son dos PRs. Si compartieran archivo, irían juntos. Los arreglos van en una rama por PR; no se muestran."},{"type":"say","md":"#### Listo\n- **Issues:** #21 (F-01) y #22 (F-02), uno por hallazgo.\n- **PRs:** #23 cierra #21 y #24 cierra #22; cada uno abre con `Closes #…` y nombra los archivos que comparte con el otro, o que no comparte ninguno.\n- **F-03** quedó en el informe, sin publicar.\n- Nada de lo que escribí menciona que lo hizo un asistente: todo sale a tu nombre.","source":"inferido","notes":"Leé el cierre: cuántos issues y PRs, y qué quedó afuera. Remarcá la última línea: la regla de atribución es absoluta; no hay pie de página ni trailer de co-autor en nada. Eso ya está decidido por la skill y no se discute en cada corrida.","pause":true}]},{"id":"el-sweep","title":"Otro caso: el sweep","subtitle":"Antes de pushear, chequeos que cuestan menos que descubrirlos en CI","screen":"cursor-agent","faq":[{"q":"¿Por qué marca un nombre de test como secreto?","a":"Porque el detector de TruffleHog toma cualquier palabra de 40 caracteres alfanuméricos como un secreto verificado y rompe el CI. Hay nombres de test que justo miden 40."},{"q":"¿Qué es el tooling local?","a":"Carpetas de herramientas del editor o del agente, como .serena o .idea. Un git add -A las mete en el PR de otra persona sin que te des cuenta."},{"q":"¿Cuándo dice «limpio»?","a":"Solo cuando pudo comparar y no encontró nada. Si no puede comparar, por ejemplo con una rama base que no existe, se niega a decir limpio."},{"q":"¿Puedo correrlo yo, sin el agente?","a":"Sí: son scripts sueltos. Parado en tu repo, corrés sweep.sh con la rama base. Lo mismo con check-attribution.sh."}],"steps":[{"type":"ask","text":"Voy a pushear: pasá el sweep y chequeá que nada indique que lo hizo un LLM","source":"inferido","notes":"Dos pedidos en una frase. La skill los resuelve con dos scripts: el sweep y el chequeo de atribución. Es un segundo push: ya hay PRs abiertos y la persona vuelve a pedir el chequeo antes de empujar un cambio nuevo."},{"type":"term","cmd":"~/.agents/skills/auditing-repos/scripts/sweep.sh main","out":["── sweeping fix/descuento-sin-tope against main ──","✗ 40-char identifiers (TruffleHog Lob false positive):","    api/tests/test_orders.py:test_discount_above_100_keeps_total_zero","✗ local tooling in the diff:","    .serena/project.yml","✓ no LLM attribution (commits, diff, branch, GitHub, Jira)","· no pinned action SHAs to verify","✓ no mutable action refs","","sweep found problems — fix before pushing","# exit 1"],"source":"inferido","cwd":"~/mi-servicio","notes":"Dos problemas, y los dos son de los que no se ven a simple vista. Un nombre de test de exactamente 40 caracteres, que TruffleHog tomaría por un secreto, y un archivo de .serena dentro del diff, que se coló con un git add -A. Inferido: el sweep usa rg, que no está en la captura; la salida sigue la de la documentación."},{"type":"say","md":"No pusheo. El sweep encontró dos problemas:\n- Un nombre de test de 40 caracteres en `api/tests/test_orders.py`: el detector de TruffleHog lo marcaría como secreto.\n- Un archivo de `.serena/` en el diff.\n\nLos saco, enmiendo el commit y vuelvo a correr el sweep.","source":"inferido","notes":"El agente se frena solo y dice por qué. No empuja «y vemos en CI». Es el valor del sweep: el error cuesta un minuto acá y una tarde en un PR ajeno."},{"type":"term","cmd":"~/.agents/skills/auditing-repos/scripts/sweep.sh main","out":["── sweeping fix/descuento-sin-tope against main ──","✓ no 40-char identifiers","✓ no local tooling files","✓ no LLM attribution (commits, diff, branch, GitHub, Jira)","· no pinned action SHAs to verify","✓ no mutable action refs","","sweep clean","# exit 0"],"source":"inferido","cwd":"~/mi-servicio","notes":"Después de arreglar, el mismo comando. Fijate el punto en «no pinned action SHAs»: no es un tilde, es un punto. Significa que no había nada para chequear, no que se chequeó y estaba bien. La skill distingue las dos cosas a propósito."},{"type":"term","cmd":"~/.agents/skills/auditing-repos/scripts/check-attribution.sh main","out":["── attribution sweep: fix/descuento-sin-tope vs main ──","✓ commits clean (author, committer, body, trailers)","✓ diff contents clean","✓ branch name clean","✓ GitHub clean (4 items, 0 with own comments)","· skipped Jira (env vars not set)","","no attribution found on any reachable surface","# exit 0"],"source":"inferido","cwd":"~/mi-servicio","notes":"El segundo pedido: que nada indique que lo hizo un asistente. Mira los commits, el diff, la rama, los PRs y issues de GitHub y, si hay credenciales, Jira. Fijate la última línea: dice «en cualquier superficie alcanzable», no «sin atribución». Lo que no pudo leer figura como salteado con un punto, nunca como limpio."}]},{"id":"jira-y-review","title":"Otro caso: Jira y la review","subtitle":"Vincular los PRs a un ticket y contestar al revisor automático","screen":"cursor-agent","faq":[{"q":"¿Crea tickets en Jira por cada hallazgo?","a":"No. Los hallazgos van a issues de GitHub. Con Jira la skill solo comenta en tickets que ya existen y vincula PRs."},{"q":"¿Por qué no renombra la rama?","a":"Porque, según la documentación de GitHub, si renombrás la rama de un PR abierto, el PR se cierra. Para PRs que ya existen, la clave va en el título."},{"q":"¿Por qué la clave va al final del título?","a":"Para no romper el prefijo de los conventional commits, como fix:. Jira escanea el título entero, así que lo encuentra igual. Y la clave va en mayúsculas."}],"steps":[{"type":"ask","text":"Vinculá estos PRs al ticket PLAT-123","source":"inferido","notes":"Un pedido corto. Jira vincula un PR cuando la clave aparece en el nombre de la rama, en un commit o en el título del PR."},{"type":"say","md":"Los PRs #23 y #24 ya existen, así que **no renombro sus ramas**: GitHub cierra un PR si se renombra su rama.\n\nLes agrego la clave al final del título: `fix: … (PLAT-123)`.","source":"inferido","notes":"Esta es la regla que más cuesta aprender a las malas. La rama de un PR abierto no se toca. El título sí, y es no destructivo. Si ya sabías el ticket antes de empezar, la clave se pone en el nombre de la rama desde el principio."},{"type":"tool","label":"Ran · gh pr edit 23 y gh pr edit 24 · título con (PLAT-123)","source":"inferido","notes":"Dos comandos, uno por PR. Escribe en GitHub, pero sobre PRs que la persona ya aprobó publicar en esta misma conversación."},{"type":"ask","text":"Contestá los comentarios del revisor automático","source":"inferido","notes":"Después de publicar, llegan los comentarios de un revisor automático. Son útiles, pero no tienen la última palabra."},{"type":"say","md":"Verifiqué cada comentario antes de contestar:\n- **Comentario 1: tiene razón.** El borde de la página 0 también falla; lo arreglo.\n- **Comentario 2: no tiene razón.** Muestro la prueba: el test pasa con el valor que él propone.\n\nRespondo en cada hilo con la evidencia, en las dos direcciones.","source":"inferido","notes":"Verificar en las dos direcciones es la idea: ni aceptar todo ni rechazar por reflejo. Si el comentario está mal por la razón que da pero bien en el efecto, la skill dice exactamente eso: es lo más útil para quien lee.","pause":true}]},{"id":"si-algo-falla","title":"Si algo falla","subtitle":"Los tres tropiezos más comunes","screen":"terminal","faq":[{"q":"El agente no ofrece la skill, ¿qué hago?","a":"Casi siempre abriste la sesión antes de crear los enlaces. Abrí una sesión nueva y verificá a dónde apunta el enlace."},{"q":"¿Anda en Cursor pero no en Claude Code?","a":"Falta el segundo enlace, el de ~/.claude/skills. Pedile al agente que lo cree, o corrélo vos."},{"q":"¿Qué significa un 401 de Jira?","a":"Que el token venció o se revocó. No es un problema de permisos. Creá otro token y cambiá la variable."},{"q":"¿Se puede forzar la skill?","a":"Sí: escribí /auditing-repos en el chat. Pero normalmente se activa sola cuando pedís una auditoría."}],"steps":[{"type":"term","cmd":"readlink ~/.agents/skills/auditing-repos","out":["~/skills/teamwayofwork/skills/auditing-repos"],"source":"real","cwd":"~","notes":"Primer síntoma: el agente no ofrece la skill. Esto muestra a dónde apunta el enlace: tiene que ser la carpeta skills/auditing-repos de tu clon. Si no sale nada, el enlace no existe; si apunta a otro lado, el clon se movió. Y abrí una sesión nueva."},{"type":"term","cmd":"~/.agents/skills/auditing-repos/scripts/sweep.sh nope","out":["✗ base ref 'nope' does not resolve — cannot diff, refusing to report clean","  available: main ","  pass one explicitly: sweep.sh \u003cbase-ref\u003e","# exit 2"],"source":"real","cwd":"~/mi-servicio","notes":"Segundo síntoma: la rama base no existe. El sweep se niega a decir limpio y sale con código 2. Muestra qué ramas hay y cómo pasarla explícita. Un chequeo que pasa en silencio cuando no pudo correr es peor que no tener chequeo."},{"type":"term","cmd":"~/.agents/skills/auditing-repos/scripts/preflight.sh | grep -A2 '^jira auth'","out":["jira auth                  HTTP 401 — token expired or revoked, NOT a permissions problem","  note                     an unauthenticated Jira returns 404 for real tickets. Never conclude","                           'the ticket does not exist' from a 404 while /myself returns 401."],"source":"inferido","cwd":"~/mi-servicio","notes":"Tercer síntoma, con Jira: un 401 es un token vencido, no un tema de permisos. Lo importante es la nota: una Jira sin autenticar devuelve 404 para tickets que sí existen, así que jamás se concluye «el ticket no existe» mientras el 401 siga. Inferido: necesita credenciales y red."}]},{"id":"cierre","title":"Cierre","subtitle":"Lo que te llevás","screen":"cursor-agent","faq":[{"q":"¿Cuándo la uso?","a":"Cuando vas a entregar un repo a otro equipo, antes de clonar una plantilla muchas veces, o cuando querés que los hallazgos terminen en issues y PRs."},{"q":"¿Sirve para revisar un PR?","a":"No. Para un diff puntual usá el revisor de tu host, por ejemplo /code-review. Esta skill es para un repositorio entero."},{"q":"¿Qué necesito para el próximo episodio?","a":"Lo mismo del episodio 0. Cada episodio empieza instalando su skill."}],"steps":[{"type":"ask","text":"¿Qué me llevo de esto?","source":"inferido","notes":"Cerrá con las tres ideas; no repitas el episodio."},{"type":"say","md":"#### Lo que te llevás\n- **Un hallazgo sin verificar no es un hallazgo:** cada cosa que se publica salió de ejecutar algo, y lo que no, se reporta pero no sale.\n- **Una compuerta antes de publicar:** el agente frena con el informe y espera tu respuesta. Es una instrucción, no un candado: leé el informe.\n- **Nada indica que lo hizo un asistente:** ni en commits ni en issues ni en PRs, y el sweep lo comprueba.\n\n#### Próximo episodio: local-board-skill\nCómo mantener un tablero de trabajo en archivos Markdown, trazado contra los commits de Git, y sincronizarlo con Jira solo después de revisar un plan.","source":"inferido","notes":"Las tres ideas son el producto: verificar, frenar y no dejar firma. Anticipá el próximo en una frase: pasamos de auditar código a ordenar el trabajo, con un tablero que vive en tu repo y que solo llega a Jira cuando vos revisaste el plan.","pause":true}]}]},{"id":"local-board-skill","series":"cursor","order":6,"title":"local-board-skill","pitch":{"ask":"Armame un board local para este proyecto","does":"Crea un board de épicas, historias y tareas en archivos Markdown, lo traza contra los commits de Git y lo sincroniza con Jira solo después de que revisás un plan guardado: solo se escribe con un plan guardado que revisaste (o con --apply, en la limpieza de links)."},"skill":{"repo":"teamwayofwork","commit":"a0bc150","date":"2026-10-17"},"workspace":{"repo":"mi-servicio","files":["api","web","docs","README.md"],"chats":[{"title":"Revisar el alcance de devoluciones","age":"1d"}]},"chapters":[{"id":"instalar","title":"Instalar","subtitle":"Una vez por máquina: clonar y enlazar","screen":"terminal","faq":[{"q":"¿Qué necesito instalado?","a":"Solo python3 y git. Los scripts de la skill usan nada más que la biblioteca estándar de Python, así que no hay nada que instalar con pip."},{"q":"¿Por qué enlazar y no copiar?","a":"Porque así hay una sola fuente de verdad: tu clon. Cuando lo actualizás, la skill se actualiza sola. Una copia se queda vieja en silencio."},{"q":"¿Puedo instalarla sin enlaces?","a":"Sí: con npx skills add, desde tu clon, y necesitás Node. Pero instala una copia: no se actualiza con git pull, hay que repetir el comando. Y si ya la habías enlazado, te cambia el enlace por la copia."},{"q":"El clone dice «Permission denied», ¿qué hago?","a":"Falta acceso a este repo, que es de otra organización. Pedíselo al equipo dueño; la clave SSH del episodio 0 sirve en cuanto te lo den."}],"steps":[{"type":"term","cmd":"git clone \u003crepo\u003e ~/skills/teamwayofwork","out":["Cloning into '~/skills/teamwayofwork'..."],"source":"inferido","cwd":"~","notes":"Primero bajamos el repo del equipo. Ojo: es un repo con varias skills adentro, y la que vamos a usar vive en la carpeta skills/local-board-skill. En \u003crepo\u003e va la dirección que te da tu equipo. Necesita red y acceso por SSH. La clave SSH sale del episodio 0, pero el acceso a este repo, que es de otra organización, se lo pedís al equipo dueño: si no te lo dieron, git clone responde «Permission denied» y no es un error tuyo. Paso inferido."},{"type":"term","cmd":"mkdir -p ~/.agents/skills ~/.claude/skills","out":[],"source":"real","cwd":"~","notes":"Creamos las dos carpetas donde los agentes buscan skills, por si no existen. Si ya existen, no pasa nada: el -p lo tolera."},{"type":"term","cmd":"cd ~/skills/teamwayofwork \u0026\u0026 ln -s \"$PWD/skills/local-board-skill\" ~/.agents/skills/local-board-skill","out":[],"source":"real","cwd":"~","notes":"El enlace para Cursor. Es un acceso directo a la carpeta de la skill dentro de tu clon, no una copia. Cursor busca en ~/.agents/skills."},{"type":"term","cmd":"ln -s ../../.agents/skills/local-board-skill ~/.claude/skills/local-board-skill","out":[],"source":"real","cwd":"~","notes":"El segundo enlace es para Claude Code, que busca en ~/.claude/skills. Si solo usás Cursor podrías saltearlo, pero conviene dejarlo: es gratis y la serie siguiente usa Claude Code. Apunta al primer enlace, así hay un solo camino hasta tu clon."},{"type":"term","cmd":"head -4 ~/.claude/skills/local-board-skill/SKILL.md","out":["---","name: local-board-skill","description: \"Use when bootstrapping a local work board, analyzing commits since its last sync, relating specs and tickets, reconciling historical Git evidence, or preparing and applying an approved Jira sync.\"","compatibility: \"Requires python3 (standard library only) and git. Syncing with Jira also needs the JIRA_EMAIL and JIRA_API_TOKEN environment variables plus JIRA_BASE_URL or JIRA_CLOUD_ID.\""],"source":"real","cwd":"~","notes":"Comprobamos leyendo la cabecera del SKILL.md a través del enlace: si se ve, el enlace anda. Fijate en la línea compatibility: pide python3 y git, y avisa que las credenciales de Jira hacen falta solo para sincronizar. Todo lo demás es local."},{"type":"term","cmd":"python3 -m unittest discover -s ~/.agents/skills/local-board-skill/tests -p 'test*.py' 2\u003e\u00261 | grep -E '^(Ran |OK$|FAILED)'","out":["Ran 39 tests in 0.143s","OK"],"source":"real","cwd":"~","notes":"La comprobación que trae la skill: sus tests. Corren sin red y sin Jira, con Jira falso adentro. Tiene que terminar en OK. El número de tests puede cambiar entre versiones: lo que importa es el OK. Si ves FAILED, frená acá y no sigas: lo que venga después se apoya en esto. Las credenciales de Jira no se piden ahora: el archivo donde van lo crea la skill junto con el board, y lo vemos en el caso principal.","pause":true}]},{"id":"caso-principal","title":"Caso principal","subtitle":"Armar el board, traer la evidencia y sincronizar con un plan","screen":"cursor-full","faq":[{"q":"¿El board reemplaza a Jira?","a":"No. El board vive en archivos Markdown junto al código y Jira es la última etapa: se llega ahí recién con un plan revisado."},{"q":"¿Por qué cada hijo exige su padre?","a":"Porque la jerarquía es épica, historia, tarea y subtarea, y cada nivel cuelga del anterior. Si el padre no existe o es de otro tipo, el script no crea nada y te dice por qué."},{"q":"¿Qué es la evidencia?","a":"Los commits, specs y PRs que sustentan cada tarea. Un grafo las relaciona, y los scripts rechazan nodos sueltos antes de que algo llegue a Jira."},{"q":"¿Quién aprueba el plan?","a":"Vos, leyéndolo. No hay ventana ni candado: la aprobación es una práctica de la skill, guardar el plan, revisarlo y aplicar ese mismo plan."}],"steps":[{"type":"ask","text":"Armame un board local para este proyecto: una épica «Devoluciones de pedidos», una historia de cajero y una tarea que limite el descuento","source":"inferido","notes":"Una frase alcanza: no le explicamos el método ni los scripts, la skill se activa sola con «armame un board» o «preparame el plan de sync». Parado en el repo del proyecto, no en el de la skill."},{"type":"tool","label":"Read · ~/.agents/skills/local-board-skill/SKILL.md","source":"inferido","notes":"Cursor carga la skill. Su SKILL.md está en inglés a propósito: lo lee el modelo, no vos. Define tres modos: armar desde cero, analizar desde el último sync y reconciliar la historia. Esto es el primero."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/init_board.py --board-dir board --name 'Servicio DEMO' --jira-project-key PLAT --jira-label mi-servicio --entity-id-prefix SRV","out":["Initialized ~/mi-servicio/board"],"source":"real","cwd":"~/mi-servicio","notes":"Crea la estructura: un Board.md con la configuración, una carpeta _meta con documentación y una carpeta sync con el grafo y el estado. Todavía no habla con Jira: el proyecto y la etiqueta solo se anotan en el índice."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py --board-dir board --type epic --summary 'Devoluciones de pedidos'","out":["Created SRVE01: SRVE01-devoluciones-de-pedidos/SRVE01.md"],"source":"real","cwd":"~/mi-servicio","notes":"Crea la épica. El identificador lo genera la skill desde el prefijo: SRV, más E de épica, más un número. El siguiente paso lo usa como padre."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py --board-dir board --type story --parent SRVE01 --summary 'Como cajero, devuelvo un pedido'","out":["Created SRVS01: SRVE01-devoluciones-de-pedidos/SRVS01-como-cajero-devuelvo-un-pedido/SRVS01.md"],"source":"real","cwd":"~/mi-servicio","notes":"La historia cuelga de la épica con --parent. Cada hijo valida a su padre: una historia solo puede colgar de una épica."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py --board-dir board --type task --parent SRVS01 --summary 'Limitar el descuento al 100%' --repo mi-servicio","out":["Created SRVT01: SRVE01-devoluciones-de-pedidos/SRVS01-como-cajero-devuelvo-un-pedido/SRVT01-limitar-el-descuento-al-100/SRVT01.md"],"source":"real","cwd":"~/mi-servicio","notes":"La tarea cuelga de la historia; con --repo anotamos dónde vive el trabajo. Hasta acá todo corrió sin red: no tocamos Jira."},{"type":"term","cmd":"find board -type f | sort","out":["board/Board.md","board/SRVE01-devoluciones-de-pedidos/SRVE01.md","board/SRVE01-devoluciones-de-pedidos/SRVS01-como-cajero-devuelvo-un-pedido/SRVS01.md","board/SRVE01-devoluciones-de-pedidos/SRVS01-como-cajero-devuelvo-un-pedido/SRVT01-limitar-el-descuento-al-100/SRVT01.md","board/_meta/autores.md","board/_meta/convenciones.md","board/_meta/inventario-commits.md","board/_meta/mapeo-capacidades.md","board/_meta/spec-ticket-traceability.md","board/sync/.env","board/sync/.gitignore","board/sync/jira-config.json","board/sync/relations.json","board/sync/state.json"],"source":"real","cwd":"~/mi-servicio","notes":"El resultado en disco: cada entidad es un archivo Markdown en una carpeta que respeta la jerarquía. Mirá sync/.env: ahí van las credenciales, y nace ignorado por git para que nadie lo suba por error."},{"type":"say","md":"#### Board armado\n- **Épica SRVE01**, **historia SRVS01** y **tarea SRVT01**, cada una en su archivo y colgando de su padre.\n- Los archivos nacen con secciones «Pendiente de completar». Antes de sincronizar las redacto con evidencia y sin inventar requisitos: lo que no sé lo marco como supuesto.\n\nSi querés, sigo con la evidencia de Git.","source":"inferido","notes":"Redactar no lo hace ningún script. La skill pide objetivo, alcance y criterios de aceptación verificables, y prohíbe inventar requisitos: lo dudoso se marca como supuesto. Estos cuerpos terminan como descripción en Jira, vale la pena revisarlos."},{"type":"ask","text":"Fijate qué commits hay desde el principio del repo y validá el grafo del board","source":"inferido","notes":"Otra pieza. Usamos el principio del repo como corte porque el board es nuevo; con uno que ya sincronizó, el corte sale del estado guardado, y eso lo vemos enseguida."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/inventory_git.py --workspace . --board-dir board --since 2000-01-01","out":["Wrote ~/mi-servicio/board/sync/git-inventory.json: repositories=1 commits=3"],"source":"real","cwd":"~/mi-servicio","notes":"Inventaría los commits desde el corte y los guarda en un JSON. Es evidencia, solo eso: decidir a qué tarea corresponde cada commit exige leer el diff, y eso lo hace el agente, no el script."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/render_git_inventory.py --board-dir board","out":["Wrote ~/mi-servicio/board/_meta/inventario-commits.md"],"source":"real","cwd":"~/mi-servicio","notes":"Genera el reporte legible en _meta. No lo edites a mano: se pisa."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/refresh_relations_catalog.py --board-dir board --workspace . --output board/sync/relations.json","out":["Refreshed assets=3 specs=0 relations=0"],"source":"real","cwd":"~/mi-servicio","notes":"Actualiza el catálogo dentro del grafo de relaciones, que es la única fuente estructurada de relaciones."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/validate_relations.py --board-dir board","out":["OK relations: assets=3 specs=0 commits=0 relations=0"],"source":"real","cwd":"~/mi-servicio","notes":"Valida el grafo. Todavía no hay commits relacionados, así que no hay nada que rechazar. Cuando los haya, cada uno necesita una relación con una tarea o una exclusión con su razón: un nodo suelto no pasa."},{"type":"say","md":"Hay **3 commits** en el inventario y ninguno está relacionado con una tarea todavía. Leo cada diff, no solo el título, antes de decidir:\n- El de pedidos y totales va como evidencia de **SRVT01**: ahí vive el cálculo del descuento.\n- Los otros dos no pertenecen a ninguna tarea del board: los excluyo, cada uno con su razón.\n\nDespués valido el grafo de nuevo.","source":"inferido","notes":"La división del trabajo: el script reunió los hechos, el agente interpreta. Si un agrupamiento no se sostiene con la evidencia, la skill pide frenar y preguntarte."},{"type":"tool","label":"Edit · board/sync/relations.json","source":"inferido","notes":"Acá se ve el trabajo del agente: escribe en el grafo una relación de evidencia y dos exclusiones con su razón."},{"type":"tool","label":"Ran · validate_relations.py","source":"inferido","notes":"Segunda validación, con las relaciones cargadas."},{"type":"ask","text":"Preparame el plan de sincronización con Jira (no apliques nada)","source":"inferido","notes":"Pedimos el plan, no la aplicación. El «no apliques nada» es redundante, pero es buen hábito: deja clara la frontera."},{"type":"term","cmd":"~/.agents/skills/local-board-skill/scripts/sync.sh board --save-plan board/sync/.review-plan.json","out":["ERROR: missing JIRA_EMAIL / JIRA_API_TOKEN","# exit 1"],"source":"real","cwd":"~/mi-servicio","notes":"Sin credenciales corta enseguida con un error claro y no escribe nada: revisa las variables antes de tocar la red. Con credenciales, este mismo comando consulta Jira, solo de lectura, y guarda el plan."},{"type":"say","md":"Faltan las credenciales de Jira: **JIRA_EMAIL** y **JIRA_API_TOKEN**. Las cargás vos en `board/sync/.env`, con un editor. No me las pegues en el chat.","source":"inferido","notes":"El agente no pide el token: avisa y espera. El archivo ya existe porque lo creó init_board, y git lo ignora. Aunque quisieras pegar el token en el chat, no deberías."},{"type":"term","cmd":"open -e board/sync/.env","out":[],"source":"inferido","cwd":"~/mi-servicio","notes":"Esto lo hacés vos, en la terminal de Cursor: completás el correo, el token y la dirección de tu Jira, y guardás. Se ve tipeado por la persona porque no es un paso del agente.","in":"zsh","pause":true},{"type":"ask","text":"Ya cargué las credenciales, seguí","source":"inferido","notes":"Una frase. El agente retoma desde donde frenó."},{"type":"tool","label":"Ran · sync.sh board --save-plan board/sync/.review-plan.json","source":"inferido","notes":"Ahora sí llega a Jira, de solo lectura: por cada entidad sin clave busca un issue con su marcador entre corchetes, para no duplicar. Guarda el plan con un checksum del plan y del grafo."},{"type":"tool","label":"Read · board/sync/.review-plan.json","source":"inferido","notes":"El agente lee el plan que guardó para resumirlo. Vos podés abrir el mismo archivo."},{"type":"say","md":"Plan guardado en `board/sync/.review-plan.json`:\n- **3 acciones `create`:** la épica, la historia y la tarea. Los padres se resuelven al aplicar.\n- **0 `adopt_jira`:** busqué `[SRVE01]`, `[SRVS01]` y `[SRVT01]` en el proyecto y no hay candidatos, así que nada se duplica.\n\nNo apliqué nada. Revisalo y decime si lo aplico.","source":"inferido","notes":"El momento clave del episodio. El plan es una lista de acciones: leela. Pueden ser create, adopt_jira, update_jira, update_local, link_remote o noop. Lo que te protege no es un candado: es que se aplica ese mismo plan guardado."},{"type":"ask","text":"Aplicá el plan guardado","source":"inferido","notes":"La aprobación es esta frase. No hay ventana de macOS ni botón: es una práctica, no un bloqueo técnico. Por eso leer el plan importa tanto."},{"type":"tool","label":"Ran · sync.sh board --apply-plan board/sync/.review-plan.json","source":"inferido","notes":"Antes de escribir verifica el checksum del plan y del grafo; si algo cambió, se niega. Aplica en orden, guardando cada clave de Jira antes de crear al hijo. Inferido: escribe en Jira."},{"type":"worked","seconds":18,"source":"inferido","notes":"Tiempo de relleno: en un board grande tarda más."},{"type":"say","md":"#### Plan aplicado\n- **PLAT-101** (épica), **PLAT-102** (historia) y **PLAT-103** (tarea), con las claves ya guardadas en cada archivo del board.\n- Volví a correr `--save-plan` para verificar: trae **solo `noop`**, es decir, local y Jira coinciden.\n\nEl board y Jira dicen lo mismo.","source":"inferido","notes":"Verificación final: un segundo plan después de aplicar tiene que traer solo acciones noop. No usó ningún MCP de Jira ni la API directa: la skill lo prohíbe, el único camino es el plan guardado.","pause":true}]},{"id":"desde-el-ultimo-sync","title":"Otro caso: desde el último sync","subtitle":"El corte sale del estado guardado, nunca se adivina","screen":"cursor-agent","faq":[{"q":"¿Qué es el «último sync»?","a":"La fecha que la skill guarda en sync/state.json cada vez que aplicás un plan. De ahí sale desde cuándo mirar los commits nuevos."},{"q":"¿Y si no hay fecha guardada?","a":"La skill dice que el corte no se adivina. Lo prudente, y lo que se espera del agente, es frenar y preguntarte desde cuándo mirar."},{"q":"¿Crea una tarea por cada commit?","a":"No. Reutiliza la tarea que representa la misma capacidad y crea una nueva solo si el resultado no encaja en ninguna existente."}],"steps":[{"type":"ask","text":"Pasaron unos días: ¿qué commits hay desde el último sync?","source":"inferido","notes":"El segundo modo de la skill y el uso de todos los días: pasaron unos días desde que aplicamos el plan y querés saber qué cambió y a qué tarea pertenece."},{"type":"term","cmd":"python3 -c \"import json; print(json.load(open('board/sync/state.json'))['last_run'])\"","out":["2026-10-19T14:32:07.512340+00:00"],"source":"inferido","cwd":"~/mi-servicio","notes":"El primer paso del agente es leer la fecha de corte del archivo de estado, y la skill es tajante: no se adivina. La fecha la dejó la aplicación del plan del caso anterior: cada --apply-plan la guarda. Inferido: la captura no aplicó ningún plan; la fecha es ilustrativa."},{"type":"tool","label":"Ran · inventory_git.py --since 2026-10-19T14:32:07+00:00","source":"inferido","notes":"Con el corte leído, el inventario mira solo lo posterior. Si no hay una fecha guardada, no se inventa: el agente la pide, que es la lectura prudente del «no adivinar» (inferencia, el SKILL.md no detalla ese caso)."},{"type":"say","md":"El último sync fue el **2026-10-19**. Desde esa fecha no hay commits nuevos en `mi-servicio`: el inventario vuelve vacío y no hay nada que relacionar.\n\nCuando los haya, el camino es el de siempre:\n- Leo **cada diff**, no solo el título.\n- Reutilizo la tarea que ya representa la capacidad; solo creo una nueva si el resultado no encaja en ninguna.\n- Nuevos nodos y relaciones al grafo, validación y un plan nuevo para que lo revises.","source":"inferido","notes":"Con la fecha guardada el agente sigue solo.","pause":true}]},{"id":"limpiar-links","title":"Otro caso: limpiar links","subtitle":"Primero se lista lo que se borraría; borrar es otro pedido","screen":"cursor-agent","faq":[{"q":"¿Por qué hay links mal formados?","a":"Porque a veces se vinculó un commit con una URL del repositorio que termina en .git, que no abre la página del commit. La skill las deriva solo de remotes de git verificados, así que no las inventa."},{"q":"¿Se puede deshacer el borrado?","a":"No desde acá: con --apply borra enseguida, sin confirmación. Por eso la protección es haber revisado antes la lista."},{"q":"¿Necesita credenciales?","a":"Sí, incluso para listar: lee los links remotos de Jira. Sin ellas corta con el mismo error de faltantes, antes de tocar nada."}],"steps":[{"type":"ask","text":"Limpiá los links remotos con .git","source":"inferido","notes":"Este pedido tiene una trampa linda: dice «limpiá», pero el script, sin --apply, solo mira."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/purge_bad_remote_links.py --board-dir board --workers 12","out":["would delete PLAT-102 remote link 101: https://git.example.com/demo/repo.git/commit/abc123","Scanned 3 remote links across 3 issues; would delete 1 bad URLs","Dry run: nothing was changed. Re-run with --apply to delete these links."],"source":"inferido","cwd":"~/mi-servicio","notes":"Sin --apply, el script solo lee y lista. Recorre los issues del board que tienen clave de Jira, mira sus links remotos y marca los que terminan en .git o lo contienen. Inferido: necesita credenciales y red, y los datos son ficticios."},{"type":"say","md":"Encontré **1 link mal formado** de 3 que revisé, en **PLAT-102**: una URL de commit que contiene `.git/`.\n\n**No borré nada.** Con `--apply` borra enseguida y no se puede deshacer. Si la lista te parece bien, pedímelo.","source":"inferido","notes":"El agente se frena en la lista. El showcase de la skill indica correr primero el plan y borrar solo si se lo pedís. Leé la lista: es la única protección que hay antes del borrado."},{"type":"ask","text":"Sí, borralo","source":"inferido","notes":"Un pedido explícito, después de ver la lista: eso habilita el --apply."},{"type":"tool","label":"Ran · purge_bad_remote_links.py --apply","source":"inferido","notes":"Recién ahora aparece la bandera. Inferido: escribe en Jira."},{"type":"say","md":"Borré **1 link** de PLAT-102. Para comprobarlo, corro de nuevo el modo sin `--apply`: no debería listar nada.","source":"inferido","notes":"Verificar sin la bandera es barato y cierra el caso.","pause":true}]},{"id":"si-algo-falla","title":"Si algo falla","subtitle":"Los tres tropiezos más comunes","screen":"terminal","faq":[{"q":"¿Una tarea sin padre se crea igual?","a":"No: el script se niega, no crea nada y dice qué falta. Primero se crea la épica y se usa su identificador."},{"q":"El plan dice que está desactualizado, ¿qué hago?","a":"Regeneralo con --save-plan, revisalo de nuevo y aplicá ese. Un plan viejo nunca se aplica: cambió el grafo, las entidades o Jira."},{"q":"La skill no aparece en el agente","a":"Abrí una sesión nueva: el agente lee las skills al arrancar. Y verificá que los enlaces apunten a tu clon."},{"q":"¿Qué errores cortan antes de tocar Jira?","a":"Faltan JIRA_EMAIL y JIRA_API_TOKEN, falta la URL (JIRA_BASE_URL o JIRA_CLOUD_ID) o la URL no empieza con https."}],"steps":[{"type":"term","cmd":"readlink ~/.agents/skills/local-board-skill","out":["~/skills/teamwayofwork/skills/local-board-skill"],"source":"real","cwd":"~","notes":"Primer tropiezo: la skill no aparece. Casi siempre es una sesión abierta antes de crear los enlaces, y se arregla abriendo una sesión nueva. Con readlink verificás que el enlace apunta a tu clon; si apunta a otro lado o no existe, el problema es del enlace."},{"type":"term","cmd":"python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py --board-dir board --type story --parent NOPE --summary 'x' 2\u003e\u00261 | tail -1","out":["create_asset.py: error: story requiere un parent existente de tipo epic"],"source":"real","cwd":"~/mi-servicio","notes":"Segundo: pedir una historia con un padre que no existe. No crea nada y explica por qué. Lo mismo pasa con un padre del tipo equivocado: una tarea no puede colgar de una épica."},{"type":"term","cmd":"~/.agents/skills/local-board-skill/scripts/sync.sh board --apply-plan board/sync/.review-plan.json","out":["ERROR: approved plan is stale: relations graph changed; regenerate and reapprove it","# exit 2"],"source":"inferido","cwd":"~/mi-servicio","notes":"Tercero, el más importante: el plan guardado ya no coincide con el grafo, porque algo cambió después de guardarlo. No aplica nada y pide regenerar y volver a aprobar. Es una protección buena, no un error a esquivar. Inferido: llega a este chequeo después de consultar Jira."}]},{"id":"cierre","title":"Cierre","subtitle":"Lo que te llevás","screen":"cursor-agent","faq":[{"q":"¿Cuándo la uso?","a":"Cuando querés llevar el trabajo de un proyecto en archivos junto al código, con la evidencia de Git atada a cada tarea, y sincronizarlo con Jira de forma controlada."},{"q":"¿Puedo usarla sin Jira?","a":"Sí. Armar el board, inventariar commits y validar el grafo son locales. Jira solo entra al preparar y aplicar un plan."},{"q":"¿Qué necesito para el próximo episodio?","a":"Lo mismo del episodio 0. Cada episodio empieza instalando su skill."}],"steps":[{"type":"ask","text":"¿Qué me llevo de esto?","source":"inferido","notes":"Cerrá con las tres ideas; no repitas el episodio."},{"type":"say","md":"#### Lo que te llevás\n- **El board vive en archivos:** épicas, historias y tareas junto al código, cada una trazada a sus commits.\n- **Jira es la última etapa:** primero un plan guardado, que revisás; después se aplica ese mismo plan, y un plan viejo no se aplica.\n- **Escribir en Jira es explícito:** solo `--apply-plan` y la limpieza con `--apply`. Lo demás es local, y no hay atajo por un MCP de Jira.\n\n#### Próximo episodio: install-unified-ci\nCómo adoptar el CI unificado en un repo: evalúa el repo, genera el workflow canónico para su stack y poda los viejos.","source":"inferido","notes":"Las tres ideas son el producto: archivos, plan y escritura explícita. La aprobación es tuya y es una práctica, no un candado: leer el plan es el trabajo. Anticipá el próximo en una frase: pasamos de ordenar el trabajo a ordenar cómo se construye, con un CI único para todos los repos del equipo.","pause":true}]}]},{"id":"install-unified-ci","series":"cursor","order":7,"title":"install-unified-ci","pitch":{"ask":"Adoptá el CI unificado acá","does":"Evalúa el repo, genera el ci.yml canónico para su stack y poda los workflows viejos. Si el repo tiene requerimientos incompatibles, frena y reporta los gaps en vez de romper el CI del equipo."},"skill":{"repo":"teamwayofwork","commit":"a0bc150","date":"2026-10-17"},"workspace":{"repo":"mi-servicio","files":["api","web","docs","README.md"],"chats":[{"title":"Revisar el alcance de devoluciones","age":"1d"}]},"chapters":[{"id":"instalar","title":"Instalar","subtitle":"Una vez por máquina: clonar y correr el instalador","screen":"terminal","faq":[{"q":"¿Por qué hay un instalador y no un simple enlace?","a":"Porque en este repo no está la skill: solo está el instalador. La skill vive en otro repo del equipo, y el script la baja de ahí y crea los enlaces por vos."},{"q":"¿Qué necesito instalado?","a":"git y bash. Y poder clonar el repo de la skill por HTTPS: si ese acceso falla, el script corta antes de enlazar nada."},{"q":"¿Puedo hacer los enlaces a mano?","a":"Sí, si ya tenés clonado el repo de la skill: son dos ln -s, uno para Cursor y otro para Claude Code. A diferencia del script, ln -s no borra nada: si el destino existe, falla."},{"q":"El clone dice «Permission denied», ¿qué hago?","a":"Falta acceso a este repo, que es de otra organización. Pedíselo al equipo dueño; la clave SSH del episodio 0 sirve en cuanto te lo den."},{"q":"El instalador pide usuario y contraseña de GitHub, ¿qué hago?","a":"El script trae la skill por HTTPS desde un repo interno de otra organización. Si no tenés credenciales de git para HTTPS, corré gh auth login (elegí HTTPS) o gh auth setup-git, y volvé a correr el instalador. Si dice «not found», te falta el acceso: pedíselo al equipo dueño."}],"steps":[{"type":"term","cmd":"git clone \u003crepo\u003e ~/skills/teamwayofwork","out":["Cloning into '~/skills/teamwayofwork'..."],"source":"inferido","notes":"Primero bajamos el repo del equipo. En \u003crepo\u003e va la dirección que te da tu equipo. Necesita red y acceso por SSH. La clave SSH sale del episodio 0, pero el acceso a este repo, que es de otra organización, se lo pedís al equipo dueño: si no te lo dieron, git clone responde «Permission denied» y no es un error tuyo. Paso inferido.","cwd":"~"},{"type":"term","cmd":"ls ~/skills/teamwayofwork/skills/install-unified-ci","out":["README.md","docs","scripts"],"source":"real","notes":"Mirá bien lo que hay en esta carpeta: un README, la documentación y un script. No hay SKILL.md. Esta es la particularidad de la skill de hoy: el repo trae solo el instalador, y la skill de verdad vive en otro repo. Por eso no hacemos un enlace nosotros: lo hace el script. Y una aclaración sobre las versiones: la skill sale de la rama main de ese otro repo, y este episodio la sigue tal como estaba el 16 de octubre de 2026; si cambió desde entonces, puede haber diferencias.","cwd":"~"},{"type":"term","cmd":"grep -nE 'rm -rf|reset --hard' ~/skills/teamwayofwork/skills/install-unified-ci/scripts/install.sh","out":["22:  git -C \"${CACHE_DIR}\" reset --hard FETCH_HEAD","34:rm -rf \"${TARGET_DIR}\"","40:rm -rf \"${CLAUDE_DIR}/install-unified-ci\"","46:  rm -rf \"${HOME}/.omp/skills/install-unified-ci\""],"source":"real","notes":"Antes de correr un script que no escribiste, leelo. Acá filtramos las líneas que importan: los rm -rf, uno por cada destino, y el reset --hard. El script borra lo que haya en los destinos antes de enlazar, y descarta cambios locales de su cache. Si tenías una copia tuya de esta skill en esas carpetas, se pierde. Decilo en voz alta: es la advertencia más importante del capítulo.","cwd":"~"},{"type":"term","cmd":"cd ~/skills/teamwayofwork \u0026\u0026 ./skills/install-unified-ci/scripts/install.sh","out":["=== Instalador de skill: install-unified-ci ===","Obteniendo la skill desde https://github.com/\u003corg\u003e/core-architecture-gh-workflows.git (main)...","✓ Enlazado a ~/.agents/skills/install-unified-ci -\u003e ~/.cache/core-architecture-gh-workflows/skills/install-unified-ci","✓ Enlazado a ~/.claude/skills/install-unified-ci","","✅ Skill install-unified-ci instalada correctamente desde origin/main.","Probá ejecutar en tu agente: /install-unified-ci o 'revisá si este repo puede usar el CI unificado'."],"source":"inferido","notes":"Un solo comando hace todo: baja la skill a una cache en tu carpeta personal y crea los enlaces para Cursor y para Claude Code. Es el mismo comando para instalar y para actualizar. Necesita red, así que el paso es inferido; en tu pantalla la dirección sale completa y las rutas son las tuyas. Fijate que termina con el mensaje de «instalada correctamente»: si no lo ves, algo falló.","cwd":"~"},{"type":"term","cmd":"ls -l ~/.agents/skills/install-unified-ci/SKILL.md","out":["-rw-r--r--  1 demo  staff  3412 17 oct 11:00 ~/.agents/skills/install-unified-ci/SKILL.md"],"source":"inferido","notes":"La comprobación de la instalación: ahora sí aparece el SKILL.md, a través del enlace. Después abrí una sesión nueva del agente: una que estaba abierta antes de instalar no se entera. Salida inferida: el tamaño y la fecha son de ejemplo.","cwd":"~","pause":true}]},{"id":"caso-principal","title":"Caso principal","subtitle":"Pedir la migración: la skill arma la rama, el PR y el resumen","screen":"cursor-full","faq":[{"q":"¿Por qué no me pregunta antes de cambiar nada?","a":"Porque pedir «adoptá el CI unificado» ya es la confirmación: la skill no hace una pregunta más. Lo que te protege es que trabaja en su propia rama, nunca en la principal, que se frena sola si el repo es incompatible, y que el cambio llega como un PR que revisás vos."},{"q":"¿Quién hace el push y el PR?","a":"La skill, sola: pushea su rama y abre el PR sin pedirte permiso. Vos revisás y mergeás. Por eso conviene pedir la migración solo en un repo donde eso está bien. Si solo querés mirar, pedí una evaluación: no toca nada."},{"q":"¿Y si el CI del PR falla?","a":"La skill mira el resultado. Si es un error de configuración suyo, lo corrige y vuelve a probar, hasta dos intentos. Si es deuda que ya tenía el repo (tests rotos, un escaneo de seguridad), no la esconde: la anota en el PR."},{"q":"¿Qué stacks entiende?","a":"Node, Go, Maven, Gradle, Python, Docker, Flutter y Kong. Si el repo mezcla dos lenguajes o no encaja en ninguno, frena y lo dice."}],"steps":[{"type":"ask","text":"Adoptá el CI unificado acá.","source":"inferido","notes":"El pedido es una frase, como se la dirías a una compañera. Para la skill es una migración: pediste instalar, no un juicio. Dos cosas para decir en voz alta: el árbol de trabajo tiene que estar limpio fuera de .github/workflows, y en esta modalidad la skill crea la rama, pushea y abre el PR sola. Y una aclaración: la skill escribe ci.yml, y publish.yml solo para librerías de Node, Maven o Gradle; el pitch lo simplifica."},{"type":"tool","label":"Read · ~/.agents/skills/install-unified-ci/SKILL.md","source":"inferido","notes":"Cursor reconoce el pedido y carga la skill. Primero clasifica el pedido en un modo: evaluación, migración o fuera de alcance. Después sigue un flujo de ocho pasos: perfilar, auditar, generar, podar, validar, abrir el PR, mirar el CI y reportar."},{"type":"term","cmd":"ls api","out":["mi_servicio","pyproject.toml","requirements.txt","tests"],"source":"real","notes":"Paso 1, perfilar el repo. Mira los manifiestos para reconocer el stack. Acá hay un requirements.txt y un pyproject.toml dentro de api: sin manifiesto en la raíz, la skill toma esa carpeta como el proyecto Python, y con pip el requirements.txt es obligatorio. Lectura pura.","cwd":"~/mi-servicio"},{"type":"term","cmd":"ls .github/workflows","out":["lint.yml","test.yml"],"source":"real","notes":"Paso 2, auditar el CI que hay hoy: dos workflows propios, uno de tests y otro de lint. Los compara con lo que el CI unificado ya hace. También es lectura pura.","cwd":"~/mi-servicio"},{"type":"say","md":"Es un pedido de **migración**.\n\n- **Stack:** Python. Detecté `api/requirements.txt` y `api/pyproject.toml`, y no hay manifiesto en la raíz: el proyecto es `api` y el gestor es `pip`.\n- **CI actual:** `test.yml` y `lint.yml`. No hay deploys directos a la nube, ni matrices multi-OS, ni migraciones en el runner.\n- **Gate:** **Parcial**. `test.yml` corre la suite unitaria que el CI unificado ya ejecuta; `lint.yml` es un chequeo propio y lo conservo.\n\nSigo con la migración.","source":"inferido","notes":"Esta es la parte que hay que mirar despacio. El agente dice el modo, el stack con la evidencia, y la clasificación del gate: completo, parcial o incompatible. Solo incompatible frena. Acá no pregunta si sigue: dice «sigo». Fijate también que el lint no se borra: la skill borra solo lo que puede demostrar que el unificado ya cubre. Respuesta inferida, con datos ficticios.","pause":true},{"type":"tool","label":"Ran · git switch -C chore/migrate-to-unified-ci origin/main","source":"inferido","notes":"Paso 3: crea su propia rama desde la principal del remoto. Antes comprobó que el árbol esté limpio y que no haya ya un PR abierto de esa migración. Si hay uno, frena. Todo este tramo es inferido."},{"type":"tool","label":"Wrote · .github/workflows/ci.yml","source":"inferido","notes":"Genera el ci.yml canónico para el stack. Como el repo no despliega, lo escribe sin el deploy a Platform. El contenido lo define la skill en su repo."},{"type":"tool","label":"Deleted · .github/workflows/test.yml","source":"inferido","notes":"Paso 4, podar: borra solo lo que el unificado reemplaza, y solo lo que estaba antes de escribir. El lint queda."},{"type":"tool","label":"Ran · validación local (YAML, secrets: inherit, sin \u003cPLACEHOLDER\u003e)","source":"inferido","notes":"Paso 5: antes de commitear revisa que el YAML sea válido, que tenga secrets: inherit y que no quede ningún campo sin completar."},{"type":"tool","label":"Ran · git commit, git push -u origin chore/migrate-to-unified-ci, gh pr create","source":"inferido","notes":"Paso 6. Remarcalo: acá la skill commitea, pushea y abre el PR, sin preguntarte. Necesita gh instalado y con sesión iniciada. Es el momento que más tiene que ver con tu decisión de pedir la migración."},{"type":"tool","label":"Ran · gh run watch","source":"inferido","notes":"Paso 7: mira la corrida del pull request. Corre tests, Sonar y los escaneos de seguridad; no corre el deploy ni publica nada. Si falla por configuración, corrige y reintenta, hasta dos veces; si es deuda previa del repo, no la esconde."},{"type":"say","md":"#### Resumen de la migración\n- **Stack y herramientas:** Python con `pip` (`api/requirements.txt`)\n- **Entrypoint:** el workflow reutilizable de Python del CI unificado, llamado desde `ci.yml` con `secrets: inherit`\n- **Parámetros en `with:`:** `package-manager: pip`, `python-version: '3.11'`, `python-project-directory: 'api'` y `skip-platform: true`\n- **Borrado:** `test.yml`\n- **Conservado:** `lint.yml`\n- **CI:** `PR checks passed`. `deploy not exercised`: el deploy no corre en esta rama.\n- **Deuda previa:** ninguna detectada\n\nAgregué este resumen a la descripción del PR.","source":"inferido","notes":"Paso 8, el reporte, y es lo que tenés que leer. Fijate en la frase «deploy not exercised»: la skill nunca dice que el deploy «se verificó», porque en el run del PR no corre. Y el resumen también queda en la descripción del PR. Los parámetros salen de la plantilla de Python: gestor, versión y carpeta del proyecto, más el que apaga el deploy porque este repo no despliega. Respuesta inferida.","pause":true},{"type":"term","cmd":"gh pr view --web","out":["Opening github.com/\u003corg\u003e/mi-servicio/pull/12 in your browser."],"source":"inferido","notes":"Ahora te toca a vos: abrís el PR, leés el diff y el resumen, y mergeás si estás conforme. El merge es tuyo. Salida inferida; el número del PR es de ejemplo.","cwd":"~/mi-servicio","pause":true,"in":"zsh"}]},{"id":"frena-con-gaps","title":"Otro caso: evaluar sin tocar nada","subtitle":"Una evaluación termina en un reporte, y si hay gaps lo dice","screen":"cursor-agent","faq":[{"q":"¿Cuándo es una evaluación y cuándo una migración?","a":"Si pedís un juicio («¿puede adoptar el CI unificado?», «¿conviene migrar?») es evaluación. Si pedís instalar o migrar, es migración. La skill mira lo que pediste, no las palabras sueltas."},{"q":"¿Qué repos no entran?","a":"Los que despliegan directo a AWS o GCP, los que tienen matrices obligatorias en macOS o Windows, los que hacen migraciones de base de datos en el runner y los que mezclan dos lenguajes. Tampoco los lenguajes fuera del catálogo."},{"q":"¿Una evaluación deja algo cambiado?","a":"No. Termina con el reporte: no crea rama, no edita archivos y no abre un PR."}],"steps":[{"type":"ask","text":"Revisá si este repo puede usar el CI unificado.","source":"inferido","notes":"Mismo tema, pero otro pedido: acá no pedís cambiar nada, pedís un juicio. Por eso es una evaluación. Es el segundo ejemplo del README. Lo hacemos en otro repo del equipo, uno que despliega directo a la nube."},{"type":"say","md":"#### Unified CI evaluation\n- Stack: Python (`pyproject.toml` en la raíz)\n- Gate: Incompatible\n- Blockers: `.github/workflows/deploy-ecs.yml` (deploy directo a AWS ECS); `.github/workflows/test.yml` (matriz con macOS y Windows); `.github/workflows/migrate-db.yml` (migraciones de base de datos en el runner)\n- Would delete: none\n- Would keep: todos los workflows\n- Would write: none","source":"inferido","notes":"Este es el formato fijo de la skill para una evaluación: stack, gate, bloqueos con el archivo y la regla, qué borraría, qué conservaría y qué escribiría. Una lista vacía se escribe «none». Y la skill se detiene ahí: no ofrece aplicar. Es el principio «cero roturas»: prefiere decirte los gaps antes que romper el CI. En pantalla el título se ve con dos numerales. Respuesta inferida, con datos ficticios.","pause":true}]},{"id":"actualizar","title":"Otro caso: mantenerla al día","subtitle":"Volver a correr el instalador, con sus advertencias","screen":"cursor-agent","faq":[{"q":"¿Cada cuánto actualizo?","a":"Cuando el equipo te avise de un cambio, o si algo se comporta distinto. Como siempre baja main, correrlo de nuevo te deja en lo último."},{"q":"¿Puedo fijar una versión?","a":"No: el script siempre baja la rama main del repo de la skill. Si la skill cambia, cambia para vos sin aviso."},{"q":"¿Pierdo algo si la actualizo?","a":"Los cambios locales en la cache, sí: el script hace reset --hard. Si editaste algo ahí, copialo antes."}],"steps":[{"type":"ask","text":"Volvé a correr ./skills/install-unified-ci/scripts/install.sh para actualizar la skill.","source":"inferido","notes":"Actualizar es el mismo comando que instalar: se lo podés pedir al agente. Es el cuarto paso de la guía de instalación. Ojo: el script borra cosas (rm -rf), así que decidir si se lo dejás correr al agente es tuyo."},{"type":"tool","label":"Ran · ./skills/install-unified-ci/scripts/install.sh","source":"inferido","notes":"El script ve que la cache ya existe y toma otro camino: fetch y reset --hard, en lugar de clonar. Después rehace los enlaces."},{"type":"say","md":"Listo, actualicé la skill: traje lo último de `main` y rehice los enlaces.\n\n- **Ojo:** el script siempre baja `main` y no fija una versión.\n- **Y:** abrí una sesión nueva del agente para que tome la versión nueva.","source":"inferido","notes":"Dos cosas para llevarse. Una: sin versión fija, la skill puede cambiar sin avisarte. Dos: sesión nueva. Mensaje del agente inferido.","pause":true}]},{"id":"si-algo-falla","title":"Si algo falla","subtitle":"Los tres tropiezos más comunes","screen":"terminal","faq":[{"q":"¿El script dejó algo a medias?","a":"Si falla el clon o el fetch, el script corta con set -e antes de enlazar nada. Si lo corrés de nuevo, rehace todo."},{"q":"¿Cómo recupero una copia mía que se borró?","a":"Desde tu respaldo o tu repo: el script no guarda copia de lo que borra. Por eso conviene leerlo antes y avisarle al agente si tenías una."},{"q":"¿Y si la skill misma se detiene al migrar?","a":"Tiene dos frenos comunes: el árbol de trabajo tiene cambios fuera de .github/workflows, o ya hay un PR abierto de la migración. En ambos casos no sigue y lo dice. Necesita además gh instalado y con sesión."},{"q":"¿Cómo sé que quedó bien instalada?","a":"Con el ls -l del SKILL.md. Si aparece, el agente lo va a encontrar en una sesión nueva."}],"steps":[{"type":"term","cmd":"cd ~/skills/teamwayofwork \u0026\u0026 ./skills/install-unified-ci/scripts/install.sh","out":["=== Instalador de skill: install-unified-ci ===","Obteniendo la skill desde https://github.com/\u003corg\u003e/core-architecture-gh-workflows.git (main)..."],"source":"inferido","notes":"Primer tropiezo: el script termina sin el mensaje de «instalada correctamente». Pasa cuando falla el clon o el fetch, casi siempre por acceso al repo de la skill. El script usa set -e, así que corta ahí sin enlazar nada. Git imprime su propio error; revisá tu acceso y corrélo de nuevo. Salida inferida.","cwd":"~"},{"type":"term","cmd":"cd ~/skills/teamwayofwork \u0026\u0026 ./skills/install-unified-ci/scripts/install.sh","out":["=== Instalador de skill: install-unified-ci ===","Obteniendo la skill desde https://github.com/\u003corg\u003e/core-architecture-gh-workflows.git (main)...","❌ Error: no se encontró un SKILL.md válido en ~/.cache/core-architecture-gh-workflows/skills/install-unified-ci."],"source":"inferido","notes":"Segundo tropiezo: la descarga llegó pero sin SKILL.md. El script lo valida antes de tocar los enlaces y sale con error: no se enlazó nada. Lo que corresponde es avisarle al equipo dueño del repo de la skill. Salida inferida.","cwd":"~"},{"type":"term","cmd":"ls -l ~/.agents/skills/install-unified-ci/SKILL.md","out":["ls: ~/.agents/skills/install-unified-ci/SKILL.md: No such file or directory"],"source":"inferido","notes":"Tercer tropiezo: el agente no ofrece la skill. Primero comprobá que el archivo exista; si existe, casi seguro abriste la sesión antes de instalar. Cerrá el chat y abrí una nueva. Si no existe, repetí el instalador. Salida inferida.","cwd":"~"}]},{"id":"cierre","title":"Cierre","subtitle":"Lo que te llevás","screen":"cursor-agent","faq":[{"q":"¿Cuándo la uso?","a":"Al sumar un servicio nuevo, al estandarizar un repo heredado con workflows propios o antes de decidir si un repo puede migrar."},{"q":"¿Puedo evaluar sin cambiar nada?","a":"Sí: pedí un juicio, por ejemplo «revisá si este repo puede usar el CI unificado». La evaluación termina con el reporte y no crea rama, ni edita archivos, ni abre un PR."},{"q":"¿Sirve para arreglar un ci.yml que ya existe?","a":"No. Corregir un caller existente o borrar workflows sin instalar el CI unificado queda fuera de alcance: la skill lo dice y se detiene."},{"q":"¿Qué necesito para el próximo episodio?","a":"Lo mismo del episodio 0. Cada episodio empieza instalando su skill."}],"steps":[{"type":"ask","text":"¿Qué me llevo de esto?","source":"inferido","notes":"Cerrá con las tres ideas; no repitas el episodio."},{"type":"say","md":"#### Lo que te llevás\n- **Dos repos:** este trae el instalador y la skill vive en otro; el script baja la última `main` y enlaza, y borra lo que haya en los destinos.\n- **Migrar es pedir el PR:** la skill crea su rama, pushea y abre el PR sola. Vos revisás y mergeás.\n- **Para solo mirar, evaluá:** el reporte no cambia nada. Y si el repo no entra, frena y lista los bloqueos.\n\n#### Próximo episodio: arq-review\nCómo se revisa un pedido de proyecto con Arquitectura: se registra, se analiza contra las restricciones, se proponen opciones y queda un veredicto propuesto que firma una persona.","source":"inferido","notes":"Las tres ideas: la skill y su instalador viven separados; migrar abre el PR sola y lo revisás vos; evaluar no toca nada. Anticipá el próximo en una frase: pasamos del CI de un repo a la revisión de arquitectura de un proyecto entero, donde el agente prepara y los comandos que escriben en Jira los corrés vos, sin ventana de aprobación.","pause":true}]}]}]</script>
+<script>
+// Pure navigation over an episode: the global index is the flattened list of
+// (chapter card + its steps). No DOM, no state.
+// keyAction(KeyboardEvent.key) -> "right" | "left" | "space" | "b" | null: the presenter
+// keys, shared by the control and the stage. PageDown/PageUp act as the arrows because
+// presentation clickers send them.
+var Nav = (function () {
+  function flatten(ep) {
+    var out = [];
+    (ep.chapters || []).forEach(function (ch, i) {
+      out.push({chapter: i, step: -1, kind: "card"});
+      (ch.steps || []).forEach(function (st, j) {
+        out.push({chapter: i, step: j, kind: st.type});
+      });
+    });
+    return out;
+  }
+
+  function clamp(ep, i) {
+    var last = flatten(ep).length - 1;
+    return Math.max(0, Math.min(Math.floor(i) || 0, Math.max(last, 0)));
+  }
+
+  function nextChapter(ep, i) {
+    var flat = flatten(ep);
+    i = clamp(ep, i);
+    for (var k = i + 1; k < flat.length; k++) {
+      if (flat[k].step === -1) return k;
+    }
+    return Math.max(flat.length - 1, 0);
+  }
+
+  function prevChapter(ep, i) {
+    var flat = flatten(ep);
+    i = clamp(ep, i);
+    var cur = i;
+    while (cur > 0 && flat[cur].step !== -1) cur--;
+    if (cur < i) return cur;
+    for (var k = i - 1; k >= 0; k--) {
+      if (flat[k].step === -1) return k;
+    }
+    return 0;
+  }
+
+  function keyAction(key) {
+    if (key === "ArrowRight" || key === "PageDown") return "right";
+    if (key === "ArrowLeft" || key === "PageUp") return "left";
+    if (key === " " || key === "Spacebar") return "space";
+    if (key === "b" || key === "B") return "b";
+    return null;
+  }
+
+  function position(ep, i) {
+    var flat = flatten(ep);
+    i = clamp(ep, i);
+    var e = flat[i] || {chapter: 0, step: -1};
+    var ch = (ep.chapters || [])[e.chapter] || {};
+    return {chapter: e.chapter, step: e.step, total: flat.length, chapterTitle: ch.title};
+  }
+
+  return {flatten: flatten, clamp: clamp, nextChapter: nextChapter,
+          prevChapter: prevChapter, position: position, keyAction: keyAction};
+})();
+
+</script>
+<script>
+// Static render of the stage: Render.step(container, episode, index) replaces the
+// container's content with the FINISHED state of global index `index` (see nav.js).
+// Pure function of (episode, index): nothing is kept between calls.
+//
+// Screens are laid out for a fixed 1600x900 canvas (.ws-screen); the stage scales it.
+// All episode text goes through textContent / createTextNode; `say` markdown is parsed
+// into DOM nodes, never assigned as HTML.
+//
+// Animation hooks (for animate.js, which renders the finished state, hides, reveals):
+//   data-step="<j>"      on the root node of every applied step (j = index of the step
+//                        inside its chapter). Nothing else carries data-step. Steps may
+//                        live in different areas (a cursor-full term with `in: "zsh"`
+//                        sits in the zsh panel, approve is an overlay at the end of the
+//                        screen root), so document order is not step order: select by value.
+//   data-anim="type"     the element holding exactly the text that gets typed
+//                        (ask text, term command).
+//   data-anim="line"     an output line, a say paragraph / heading / list item; revealed
+//                        one at a time.
+//   data-anim="node"     tool, worked and approve nodes (and the "▸ Ran · cmd" chip and
+//                        the "⏺ Bash(cmd)" line); revealed whole.
+//   hidden               an approve step that is not the current index keeps its node
+//                        (so the step count holds) but is hidden: the window closed.
+//   data-anim="idle"     the wrapper of the waiting prompt (prompt line + "❯ █") at the
+//                        end of the terminal and of the cursor-full zsh panel. It is not
+//                        a step: hide it while a term step animates, show it at the end.
+//
+// Prompt clock: every prompt shows Render.now() as HH:MM:SS (local time) in a
+// .ws-time span. Render.now defaults to `new Date()`; tests and render-preview replace it
+// with a fixed date so the output stays deterministic. The stage refreshes only the idle
+// prompt's .ws-time every second (Stage.tickClock); steps are never re-rendered for it.
+// Prompt icons (folder, house, clock) are inline SVG built with createElementNS.
+// Unmarked descendants of a step root appear with the root; hooks inside one root are
+// revealed in document order. Chapter cards carry no hooks and appear whole.
+//
+// Term placement on cursor-full: by default a term step is the agent's command and
+// renders in the conversation exactly as on cursor-agent ("▸ Ran · cmd" chip + output
+// block). With `in: "zsh"` it is a command the person types and renders in the
+// integrated zsh (prompt, typed command, output lines).
+// The first chapter card also shows the episode pitch («Le decís al agente…» /
+// «Y la skill…») under its title; it is part of the card, not a separate index.
+var Render = (function () {
+  var USER = "Persona del equipo";
+  var TEAM = "Equipo";
+  var MODEL = "Sonnet 5.5";
+  var BRANCH = "main";
+
+  // ---- DOM helpers (text only) ----
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = String(text);
+    return n;
+  }
+  function add(parent) {
+    for (var i = 1; i < arguments.length; i++) {
+      if (arguments[i]) parent.appendChild(arguments[i]);
+    }
+    return parent;
+  }
+  function stepNode(tag, cls, j, anim) {
+    var n = el(tag, cls);
+    n.setAttribute("data-step", String(j));
+    if (anim) n.setAttribute("data-anim", anim);
+    return n;
+  }
+  function anim(node, kind) { node.setAttribute("data-anim", kind); return node; }
+  function dots() {
+    return add(el("div", "ws-dots"), el("i", "ws-dot ws-dot-r"), el("i", "ws-dot ws-dot-y"),
+               el("i", "ws-dot ws-dot-g"));
+  }
+  // A bottom-anchored area: short content sits on top, long content shows its newest part.
+  function scroller(cls) {
+    var outer = el("div", "ws-scroll " + cls);
+    var flow = el("div", "ws-flow");
+    outer.appendChild(flow);
+    return {outer: outer, flow: flow};
+  }
+
+  // ---- tiny markdown: **b**, `code`, "- " lists, "#### " heading, blank line = paragraph ----
+  function inline(parent, text) {
+    String(text).split(/(\*\*[^*]+?\*\*|`[^`]+`)/).forEach(function (part) {
+      if (!part) return;
+      if (/^\*\*[^*]+?\*\*$/.test(part)) parent.appendChild(el("strong", null, part.slice(2, -2)));
+      else if (/^`[^`]+`$/.test(part)) parent.appendChild(el("code", null, part.slice(1, -1)));
+      else parent.appendChild(document.createTextNode(part));
+    });
+    return parent;
+  }
+  function markdown(md) {
+    var frag = document.createDocumentFragment();
+    var para = [], list = null, table = null;
+    function flushPara() {
+      if (para.length) frag.appendChild(anim(inline(el("p"), para.join(" ")), "line"));
+      para = [];
+    }
+    // A pipe table: the row before the |---| separator is the header; every row animates as a line.
+    function cells(line) { return line.slice(1, -1).split("|").map(function (c) { return c.trim(); }); }
+    function tableRow(line) {
+      if (!table) {
+        flushPara();
+        table = {last: null, body: el("tbody")};
+        var t = el("table");
+        table.head = el("thead");
+        add(t, table.head, table.body);
+        frag.appendChild(add(el("div", "ws-md-table"), t));
+      }
+      if (/^\|[\s:|-]+\|$/.test(line) && table.last && !table.head.firstChild) {
+        var head = table.last;
+        Array.prototype.forEach.call(head.children, function (td) {
+          var th = el("th");
+          while (td.firstChild) th.appendChild(td.firstChild);
+          head.replaceChild(th, td);
+        });
+        table.head.appendChild(head);
+        return;
+      }
+      var tr = anim(el("tr"), "line");
+      cells(line).forEach(function (c) { tr.appendChild(inline(el("td"), c)); });
+      table.body.appendChild(tr);
+      table.last = tr;
+    }
+    String(md || "").split("\n").forEach(function (raw) {
+      var line = raw.replace(/\s+$/, "");
+      if (/^\|.*\|$/.test(line)) {
+        list = null;
+        tableRow(line);
+        return;
+      }
+      table = null;
+      if (/^- /.test(line)) {
+        flushPara();
+        if (!list) { list = el("ul"); frag.appendChild(list); }
+        list.appendChild(anim(inline(el("li"), line.slice(2)), "line"));
+        return;
+      }
+      list = null;
+      if (/^#{2,4} /.test(line)) {
+        flushPara();
+        frag.appendChild(anim(inline(el("h4"), line.replace(/^#+ /, "")), "line"));
+      } else if (!line) {
+        flushPara();
+      } else {
+        para.push(line);
+      }
+    });
+    flushPara();
+    return frag;
+  }
+
+  // ---- shared pieces ----
+  function workedText(st) { return "Worked for " + (st.seconds || 0) + "s"; }
+  function inRepo(cwd, repo) {
+    var home = "~/" + repo;
+    return cwd === home || cwd.indexOf(home + "/") === 0;
+  }
+  // ---- prompt clock and icons ----
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function clockText(d) {
+    return pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+  }
+  function nowText() { return clockText(api.now()); }
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  // Each icon: list of [tag, attributes] on a 16x16 viewBox; colour comes from currentColor.
+  var ICONS = {
+    folder: [["path", {d: "M1.5 3.5a1 1 0 0 1 1-1H6l1.5 1.5h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z",
+                        fill: "currentColor"}]],
+    house: [["path", {d: "M8 1.5 15 7.5h-2V14H9.5v-4h-3v4H3V7.5H1z", fill: "currentColor"}]],
+    clock: [["circle", {cx: "8", cy: "8", r: "6.25", fill: "none", stroke: "currentColor", "stroke-width": "1.5"}],
+            ["path", {d: "M8 4.5V8l2.5 1.5", fill: "none", stroke: "currentColor", "stroke-width": "1.5",
+                      "stroke-linecap": "round", "stroke-linejoin": "round"}]]
+  };
+  function icon(name) {
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "ws-ico ws-ico-" + name);
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("aria-hidden", "true");
+    ICONS[name].forEach(function (spec) {
+      var n = document.createElementNS(SVG_NS, spec[0]);
+      Object.keys(spec[1]).forEach(function (k) { n.setAttribute(k, spec[1][k]); });
+      svg.appendChild(n);
+    });
+    return svg;
+  }
+  // "~/a/b" -> "~/a/" + <b>b</b>: the last path component in bold, like the real prompt.
+  function pathText(seg, cwd) {
+    var s = String(cwd), cut = s.lastIndexOf("/") + 1;
+    if (cut > 0 && cut === s.length) cut = s.lastIndexOf("/", s.length - 2) + 1;
+    if (cut > 0) seg.appendChild(document.createTextNode(s.slice(0, cut)));
+    seg.appendChild(el("b", "ws-path-last", s.slice(cut)));
+    return seg;
+  }
+  // Two-line zsh prompt, first line: apple, folder, branch, dotted fill, system, time.
+  function promptLine(cwd, repo) {
+    var p = el("div", "ws-prompt");
+    add(p, el("span", "ws-seg ws-seg-apple", ""),
+        pathText(add(el("span", "ws-seg ws-seg-path"), icon("folder")), cwd));
+    if (inRepo(cwd, repo)) p.appendChild(el("span", "ws-seg ws-seg-git", "on ⑂ " + BRANCH));
+    add(p, el("span", "ws-seg-fill"),
+        add(el("span", "ws-seg ws-seg-sys", "system"), icon("house")),
+        add(el("span", "ws-seg ws-seg-time", "at "), el("span", "ws-time", nowText()), icon("clock")));
+    return p;
+  }
+  function cmdLine(cmd) {
+    var l = el("div", "ws-cmdline");
+    add(l, el("span", "ws-caret-prompt", "❯ "), anim(el("span", "ws-cmd", cmd), "type"));
+    return l;
+  }
+  function idlePrompt(flow, cwd, repo) {
+    var l = el("div", "ws-cmdline");
+    add(l, el("span", "ws-caret-prompt", "❯ "), el("span", "ws-caret", " "));
+    flow.appendChild(add(anim(el("div", "ws-idle"), "idle"), promptLine(cwd, repo), l));
+  }
+  // A shell term step: prompt, typed command, output lines.
+  function shellStep(st, j, cwd, repo) {
+    var n = stepNode("div", "ws-shell-step", j);
+    add(n, promptLine(cwd, repo), cmdLine(st.cmd));
+    (st.out || []).forEach(function (o) { n.appendChild(anim(el("div", "ws-out", o), "line")); });
+    return n;
+  }
+  // The tool's own approval window: its title bar, the page its code renders (no script, so sandbox="") and the
+  // two native buttons under it, at the size the tool gives it.
+  function realApproveWin(st) {
+    var win = el("div", "ws-approve-win ws-approve-real");
+    if (st.width) win.style.width = st.width + "px";
+    var bar = add(el("div", "ws-approve-bar"), dots(), el("div", "ws-approve-bar-title", st.window || ""));
+    var frame = el("iframe", "ws-approve-page");
+    frame.setAttribute("sandbox", "");
+    frame.setAttribute("title", st.title);
+    frame.setAttribute("srcdoc", st.html || "");
+    if (st.height) frame.style.height = st.height + "px";
+    var btns = add(el("div", "ws-approve-btns"), el("button", "ws-btn ws-btn-cancel", "Cancelar"),
+                   el("button", "ws-btn ws-btn-ok", st.button));
+    return add(win, bar, frame, btns);
+  }
+  function approveOverlay(st, j, current) {
+    var ov = stepNode("div", "ws-approve", j, "node");
+    if (j !== current) ov.setAttribute("hidden", "");
+    if (st.html !== undefined) {
+      ov.appendChild(realApproveWin(st));
+      return ov;
+    }
+    var win = el("div", "ws-approve-win");
+    add(win, el("div", "ws-approve-icon"), el("div", "ws-approve-title", st.title));
+    var body = el("div", "ws-approve-lines");
+    (st.lines || []).forEach(function (l) { body.appendChild(el("div", "ws-approve-line", l)); });
+    var btns = add(el("div", "ws-approve-btns"), el("button", "ws-btn ws-btn-cancel", "Cancelar"),
+                   el("button", "ws-btn ws-btn-ok", st.button));
+    add(win, body, btns);
+    ov.appendChild(win);
+    return ov;
+  }
+  // A real HTML page (the bundle inlines it) in a browser window over the screen. The frame is
+  // sandboxed with scripts but no same-origin: the page can run its own navigation, never touch the stage.
+  function pageOverlay(st, j, current) {
+    var ov = stepNode("div", "ws-page", j, "node");
+    if (j !== current) ov.setAttribute("hidden", "");
+    var win = el("div", "ws-page-win");
+    var bar = add(el("div", "ws-page-bar"), dots(), el("div", "ws-page-url", st.title));
+    var frame = el("iframe", "ws-page-frame");
+    frame.setAttribute("sandbox", "allow-scripts");
+    frame.setAttribute("title", st.title);
+    frame.setAttribute("srcdoc", st.html || "");
+    add(win, bar, frame);
+    ov.appendChild(win);
+    return ov;
+  }
+  function chapterSteps(ch, last) { return (ch.steps || []).slice(0, last + 1); }
+
+  // ---- card ----
+  function card(ep, ci) {
+    var ch = ep.chapters[ci];
+    var root = el("div", "ws-screen ws-card");
+    var inner = el("div", "ws-card-inner");
+    add(inner, el("div", "ws-card-kicker", cardSkill(ep) + " · " + (ci + 1) + " de " + ep.chapters.length),
+        el("h1", "ws-card-title", ch.title),
+        ch.subtitle ? el("p", "ws-card-sub", ch.subtitle) : null,
+        ci === 0 ? pitch(ep) : null);
+    root.appendChild(inner);
+    return root;
+  }
+  function pitch(ep) {
+    var p = ep.pitch;
+    if (!p || (!p.ask && !p.does)) return null;
+    var box = el("div", "ws-card-pitch");
+    if (p.ask) add(box, el("div", "ws-card-pitch-k", "Le decís al agente…"), el("div", "ws-card-pitch-ask", p.ask));
+    if (p.does) add(box, el("div", "ws-card-pitch-k", "Y la skill…"), el("div", "ws-card-pitch-does", p.does));
+    return box;
+  }
+  // Kicker name: the episode title (equals skill.repo for skill episodes; episode 0 has
+  // its own title).
+  function cardSkill(ep) { return ep.title || (ep.skill && ep.skill.repo) || ""; }
+
+  // ---- Cursor (full and agent-only) ----
+  function cursorSidebar(ep, ch) {
+    var ws = ep.workspace || {};
+    var sb = el("div", "ws-sb");
+    sb.appendChild(dots());
+    ["✎ New Chat", "⌕ Search", "◷ Automations", "⚙ Customize"].forEach(function (t) {
+      sb.appendChild(el("div", "ws-sb-nav", t));
+    });
+    add(sb, el("div", "ws-sb-sec", "Repositories"), el("div", "ws-sb-repo", "▭ " + (ws.repo || "")));
+    var cur = add(el("div", "ws-sb-chat ws-on"), el("span", "ws-sb-chat-t", ch.title), el("b", null, "now"));
+    sb.appendChild(cur);
+    (ws.chats || []).forEach(function (c) {
+      sb.appendChild(add(el("div", "ws-sb-chat"), el("span", "ws-sb-chat-t", c.title), el("b", null, c.age)));
+    });
+    var me = add(el("div", "ws-me"), el("div", "ws-avatar"),
+                 add(el("div", "ws-me-t"), el("div", null, USER), el("div", "ws-mut", TEAM)));
+    sb.appendChild(me);
+    return sb;
+  }
+  function modelRow() {
+    return add(el("div", "ws-ask-row"), el("span", null, "＋"), el("span", null, MODEL + " ⌄"),
+               el("span", "ws-send", "↑"));
+  }
+  function cursorMain(ch) {
+    var main = el("div", "ws-main");
+    var top = add(el("div", "ws-top"), el("span", null, ch.title), el("span", "ws-top-r", "IDE ↗  ···"));
+    var conv = scroller("ws-conv");
+    var fu = add(el("div", "ws-followup"), el("span", null, "＋  Send follow-up"),
+                 el("span", "ws-followup-m", MODEL + " ⌄"));
+    var foot = add(el("div", "ws-foot"), el("span", null, "⑂ " + BRANCH + " ⌄"), el("span", null, "▭ This Mac ⌄"));
+    add(main, top, conv.outer, fu, foot);
+    return {main: main, flow: conv.flow};
+  }
+  function cursorRight(ep) {
+    var ws = ep.workspace || {};
+    var rp = el("div", "ws-rp");
+    var tabs = add(el("div", "ws-rp-tabs"), el("span", "ws-tab ws-on", "README.md"), el("span", "ws-tab", "± Changes"),
+                   el("span", "ws-tab", "⊕ Browser"), el("span", "ws-tab", "✎ Canvas"), el("span", "ws-tab", "＋"));
+    var sub = add(el("div", "ws-rp-sub"), el("span", null, "←  →  README.md"),
+                  add(el("span", "ws-rp-sub-r"), el("span", "ws-pill", "Preview"), el("span", null, "Source")));
+    var files = el("div", "ws-rp-files");
+    var tree = add(el("div", "ws-tree"), el("div", "ws-tree-h", ws.repo || ""));
+    (ws.files || []).forEach(function (f) {
+      var isDir = String(f).indexOf(".") < 0;
+      tree.appendChild(el("div", "ws-tree-i" + (isDir ? " ws-dir" : ""), (isDir ? "▭ " : "◫ ") + f));
+    });
+    add(files, add(el("div", "ws-preview"), el("h1", null, ws.repo || "")), tree);
+    var zsh = el("div", "ws-zsh");
+    var zt = add(el("div", "ws-zsh-tabs"), el("span", "ws-pill", "▣ zsh"), el("span", null, "＋"));
+    var body = scroller("ws-zsh-body");
+    add(zsh, zt, el("div", "ws-zsh-title", "zsh"), body.outer);
+    add(rp, tabs, sub, files, zsh);
+    return {rp: rp, flow: body.flow};
+  }
+  function openTabs(ep) {
+    var repo = (ep.workspace || {}).repo || "";
+    var col = el("div", "ws-opentabs");
+    add(col, el("div", "ws-ot-h", "Open Tabs"));
+    ["◫ README.md", "⊕ Browser", "✎ Canvas", "▣ zsh"].forEach(function (t) { col.appendChild(el("div", "ws-ot-i", t)); });
+    col.appendChild(el("div", "ws-ot-h", "On " + repo));
+    col.appendChild(add(el("div", "ws-ot-i"), document.createTextNode("± Changes "), el("span", "ws-plus", "+0")));
+    ["⊕ Browser", "▣ 1 Terminal", "◫ Files"].forEach(function (t) { col.appendChild(el("div", "ws-ot-i", t)); });
+    return col;
+  }
+  function cursorScreen(ep, ch, last, full) {
+    var repo = (ep.workspace || {}).repo || "";
+    var root = el("div", "ws-screen ws-cursor " + (full ? "ws-cursor-full" : "ws-cursor-agent"));
+    var m = cursorMain(ch);
+    var right = full ? cursorRight(ep) : null;
+    add(root, cursorSidebar(ep, ch), m.main, full ? right.rp : openTabs(ep));
+    var cwd = "~/" + repo, overlays = [];
+    chapterSteps(ch, last).forEach(function (st, j) {
+      if (st.type === "ask") {
+        var a = stepNode("div", "ws-ask", j);
+        add(a, anim(el("div", "ws-ask-text", st.text), "type"), modelRow());
+        m.flow.appendChild(a);
+      } else if (st.type === "worked") {
+        m.flow.appendChild(add(stepNode("div", "ws-worked", j, "node"), document.createTextNode(workedText(st))));
+      } else if (st.type === "tool") {
+        m.flow.appendChild(add(stepNode("div", "ws-tool", j, "node"), document.createTextNode("▸ " + st.label)));
+      } else if (st.type === "say") {
+        m.flow.appendChild(add(stepNode("div", "ws-say", j), markdown(st.md)));
+      } else if (st.type === "term" && full && st["in"] === "zsh") {
+        if (st.cwd) cwd = st.cwd;
+        right.flow.appendChild(shellStep(st, j, cwd, repo));
+      } else if (st.type === "term") {
+        var r = stepNode("div", "ws-ran", j);
+        r.appendChild(anim(el("div", "ws-tool", "▸ Ran · " + st.cmd), "node"));
+        var out = el("div", "ws-ran-out");
+        (st.out || []).forEach(function (o) { out.appendChild(anim(el("div", "ws-out", o), "line")); });
+        if (out.firstChild) r.appendChild(out);
+        m.flow.appendChild(r);
+      } else if (st.type === "approve") {
+        overlays.push(approveOverlay(st, j, last));
+      } else if (st.type === "page") {
+        overlays.push(pageOverlay(st, j, last));
+      }
+    });
+    if (full) idlePrompt(right.flow, cwd, repo);
+    overlays.forEach(function (o) { root.appendChild(o); });
+    return root;
+  }
+
+  // ---- personal terminal ----
+  function termBar(title) {
+    return add(el("div", "ws-tbar"), dots(), el("span", "ws-tbar-t", title));
+  }
+  function terminalScreen(ep, ch, last) {
+    var repo = (ep.workspace || {}).repo || "";
+    var steps = chapterSteps(ch, last);
+    var cwd = "~", overlays = [];
+    steps.forEach(function (st) { if (st.type === "term" && st.cwd) cwd = st.cwd; });
+    var root = el("div", "ws-screen ws-term-theme ws-terminal");
+    var body = scroller("ws-term-body");
+    add(root, termBar("▭ " + cwd), body.outer);
+    cwd = "~";
+    steps.forEach(function (st, j) {
+      if (st.type === "term") {
+        if (st.cwd) cwd = st.cwd;
+        body.flow.appendChild(shellStep(st, j, cwd, repo));
+      } else if (st.type === "ask") {
+        body.flow.appendChild(add(stepNode("div", "ws-out ws-plain", j), anim(el("span", null, st.text), "type")));
+      } else if (st.type === "tool") {
+        body.flow.appendChild(add(stepNode("div", "ws-out ws-plain", j, "node"), document.createTextNode(st.label)));
+      } else if (st.type === "worked") {
+        body.flow.appendChild(add(stepNode("div", "ws-out ws-plain", j, "node"), document.createTextNode(workedText(st))));
+      } else if (st.type === "say") {
+        body.flow.appendChild(add(stepNode("div", "ws-plain-say", j), markdown(st.md)));
+      } else if (st.type === "approve") {
+        overlays.push(approveOverlay(st, j, last));
+      } else if (st.type === "page") {
+        overlays.push(pageOverlay(st, j, last));
+      }
+    });
+    idlePrompt(body.flow, cwd, repo);
+    overlays.forEach(function (o) { root.appendChild(o); });
+    return root;
+  }
+
+  // ---- Claude Code tab (terminal theme, transcript layout) ----
+  function ccLine(gutter, cls) {
+    return add(el("div", "ws-cc-line " + (cls || "")), el("span", "ws-cc-g", gutter));
+  }
+  function claudeCodeScreen(ep, ch, last) {
+    var repo = (ep.workspace || {}).repo || "";
+    var root = el("div", "ws-screen ws-term-theme ws-claude-code");
+    var head = add(el("div", "ws-cc-head"), el("div", "ws-cc-brand", "✻ Claude Code"),
+                   el("div", "ws-mut", MODEL + " · ~/" + repo));
+    var body = scroller("ws-cc-body");
+    body.flow.appendChild(head);
+    var input = add(el("div", "ws-cc-input"), el("span", "ws-cc-g", "› "), el("span", "ws-caret", " "));
+    add(root, termBar("▭ ~/" + repo + " — claude"), body.outer, input);
+    var overlays = [];
+    chapterSteps(ch, last).forEach(function (st, j) {
+      var n;
+      if (st.type === "ask") {
+        n = add(stepNode("div", "ws-cc-line ws-cc-ask", j), el("span", "ws-cc-g", "› "), anim(el("span", null, st.text), "type"));
+      } else if (st.type === "term" && st["in"] === "zsh") {
+        // The person's own `!` command (bash mode): typed by them, not an agent Bash call.
+        n = stepNode("div", "ws-cc-block ws-cc-bang", j);
+        n.appendChild(add(ccLine("! ", "ws-cc-bang-cmd"), anim(el("span", null, st.cmd), "type")));
+        (st.out || []).forEach(function (o, k) {
+          n.appendChild(anim(add(ccLine(k === 0 ? "⎿ " : "", "ws-cc-out"), document.createTextNode(o)), "line"));
+        });
+      } else if (st.type === "term") {
+        n = stepNode("div", "ws-cc-block", j);
+        n.appendChild(anim(add(ccLine("⏺ ", "ws-cc-tool"), document.createTextNode("Bash(" + st.cmd + ")")), "node"));
+        (st.out || []).forEach(function (o, k) {
+          n.appendChild(anim(add(ccLine(k === 0 ? "⎿ " : "", "ws-cc-out"), document.createTextNode(o)), "line"));
+        });
+      } else if (st.type === "tool") {
+        n = add(stepNode("div", "ws-cc-line ws-cc-tool", j, "node"), el("span", "ws-cc-g", "⏺ "), document.createTextNode(st.label));
+        if (/^Skill\(/.test(st.label)) {  // Claude Code confirms every skill it loads
+          var tool = n;
+          n = add(stepNode("div", "ws-cc-block", j, "node"), tool);
+          tool.removeAttribute("data-step");
+          tool.removeAttribute("data-anim");
+          n.appendChild(add(ccLine("⎿ ", "ws-cc-out"), document.createTextNode("Successfully loaded skill")));
+        }
+      } else if (st.type === "say") {
+        n = add(stepNode("div", "ws-cc-line ws-cc-say", j), el("span", "ws-cc-g", "⏺ "),
+                add(el("div", "ws-cc-md"), markdown(st.md)));
+      } else if (st.type === "worked") {
+        n = add(stepNode("div", "ws-cc-line ws-cc-worked", j, "node"), el("span", "ws-cc-g", "✻ "),
+                document.createTextNode(workedText(st)));
+      } else if (st.type === "approve") {
+        overlays.push(approveOverlay(st, j, last));
+      } else if (st.type === "page") {
+        overlays.push(pageOverlay(st, j, last));
+      }
+      if (n) body.flow.appendChild(n);
+    });
+    overlays.forEach(function (o) { root.appendChild(o); });
+    return root;
+  }
+
+  function build(ep, index) {
+    var flat = Nav.flatten(ep);
+    if (!flat.length) return el("div", "ws-screen ws-empty");
+    var e = flat[Nav.clamp(ep, index)];
+    if (e.step === -1) return card(ep, e.chapter);
+    var ch = ep.chapters[e.chapter];
+    if (ch.screen === "cursor-full") return cursorScreen(ep, ch, e.step, true);
+    if (ch.screen === "cursor-agent") return cursorScreen(ep, ch, e.step, false);
+    if (ch.screen === "claude-code") return claudeCodeScreen(ep, ch, e.step);
+    return terminalScreen(ep, ch, e.step);
+  }
+
+  function step(container, ep, index) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.appendChild(build(ep, index));
+    return container.firstChild;
+  }
+
+  var api = {step: step, markdown: markdown, clockText: clockText,
+             now: function () { return new Date(); }};
+  return api;
+})();
+
+</script>
+<script>
+// Forward animation of ONE step, plus the playback policy as pure functions.
+//
+// Animate.run(container, episode, index, opts) -> {cancel(), done: Promise}
+//   Renders the finished state with Render.step(container, episode, index), hides the
+//   current step's hooks (see render.js header) and reveals them in document order on
+//   the injected scheduler, so it looks like the step at `index` playing on top of
+//   Render.step(index - 1). Both completion and cancel() end with a fresh
+//   Render.step(container, episode, index): the final DOM is identical by construction.
+//   `done` resolves in both cases (never rejects). A new run on the same container
+//   cancels the previous one first, and a reveal that throws ends the run in the final
+//   state too.
+// Animate.stop(container): cancels the active run on `container` without rendering
+//   (call it before a static Render.step, e.g. on a back-step).
+//   opts: {speed = 1 (clamped to >= 0.1), schedule(fn, ms) -> id = setTimeout,
+//          unschedule(id) = clearTimeout, now() = Date.now (accepted, not used: every
+//          wait goes through schedule)}.
+//
+// Timing (every value is divided by speed):
+//   type  28 ms per character (code points), the text grows one character per tick
+//   line  120 ms per line / say block
+//   node  250 ms, then the node appears whole (tool, worked, chips)
+//   fade  250 ms for a card, an approve window and a page: opacity 0 until the tick
+//   autoplay delay between steps 900 ms
+// Animate.stepDuration walks the same plan the animation schedules, so the estimate
+// and the playback cannot drift apart.
+var Animate = (function () {
+  var CHAR_MS = 28;
+  var LINE_MS = 120;
+  var NODE_MS = 250;
+  var FADE_MS = 250;
+  var AUTOPLAY_MS = 900;
+  var MIN_SPEED = 0.1;
+
+  function speedOf(s) {
+    s = Number(s);
+    if (!(s > 0)) s = MIN_SPEED;
+    return Math.max(s, MIN_SPEED);
+  }
+  function chars(text) { return Array.from(String(text || "")); }
+  function hide(n) { n.style.display = "none"; }
+  function show(n) { n.style.display = ""; }
+
+  // Render the finished state into `container`, hide what the step at `index` adds and
+  // return the reveal plan: [{ms, fn}] in order (ms already divided by speed).
+  function prepare(container, ep, index, speed) {
+    Render.step(container, ep, index);
+    var flat = Nav.flatten(ep);
+    if (!flat.length) return [];
+    var e = flat[Nav.clamp(ep, index)];
+    var plan = [];
+    var screen = container.firstChild;
+    if (e.step === -1) {
+      screen.style.opacity = "0";
+      plan.push({ms: FADE_MS / speed, fn: function () { screen.style.opacity = "1"; }});
+      return plan;
+    }
+    var root = container.querySelector('[data-step="' + e.step + '"]');
+    if (!root) return plan;
+    var step = ep.chapters[e.chapter].steps[e.step];
+    // The idle prompt lives in the zsh panel (cursor-full) and on the terminal screen: hide
+    // it only when this step plays in that same flow, not for a chat-placed agent command.
+    // On claude-code, `in: "zsh"` is the person's `!` line and there is no idle prompt, so
+    // the lookup below finds nothing.
+    if (step.type === "term" && (step["in"] === "zsh" || ep.chapters[e.chapter].screen === "terminal")) {
+      var idle = container.querySelector('[data-anim="idle"]');
+      if (idle) hide(idle);
+    }
+    var hooks = [];
+    if (root.hasAttribute("data-anim")) hooks.push(root);
+    Array.prototype.forEach.call(root.querySelectorAll("[data-anim]"), function (n) { hooks.push(n); });
+    hooks.forEach(function (n) {
+      var kind = n.getAttribute("data-anim");
+      if (kind === "type") {
+        var cs = chars(n.textContent);
+        n.textContent = "";
+        cs.forEach(function (_, k) {
+          plan.push({ms: CHAR_MS / speed, fn: function () { n.textContent = cs.slice(0, k + 1).join(""); }});
+        });
+      } else if (kind === "line") {
+        hide(n);
+        plan.push({ms: LINE_MS / speed, fn: function () { show(n); }});
+      } else if (kind === "node" && (step.type === "approve" || step.type === "page") && n === root) {
+        n.style.opacity = "0";
+        plan.push({ms: FADE_MS / speed, fn: function () { n.style.opacity = "1"; }});
+      } else if (kind === "node") {
+        hide(n);
+        plan.push({ms: NODE_MS / speed, fn: function () { show(n); }});
+      }
+    });
+    return plan;
+  }
+
+  // One active run per container: a new run (or stop) cancels the previous one first.
+  var active = typeof WeakMap === "function" ? new WeakMap() : null;
+  function getActive(c) { return active ? active.get(c) : c.__wsAnimRun; }
+  function setActive(c, r) { if (active) active.set(c, r); else c.__wsAnimRun = r; }
+  function clearActive(c, r) {
+    if (getActive(c) !== r) return;
+    if (active) active.delete(c); else delete c.__wsAnimRun;
+  }
+
+  // Cancel any active run on `container` without rendering (its `done` resolves).
+  function stop(container) {
+    var r = getActive(container);
+    if (r) r.abort();
+  }
+
+  function run(container, ep, index, opts) {
+    opts = opts || {};
+    stop(container);
+    var speed = speedOf(opts.speed === undefined ? 1 : opts.speed);
+    var schedule = opts.schedule || function (fn, ms) { return setTimeout(fn, ms); };
+    var unschedule = opts.unschedule || function (id) { clearTimeout(id); };
+    var finished = false, timer = null, resolveDone;
+    var done = new Promise(function (resolve) { resolveDone = resolve; });
+    var handle = {cancel: function () { end(true); }, done: done, abort: function () { end(false); }};
+    setActive(container, handle);
+    var plan = prepare(container, ep, index, speed);
+
+    function end(render) {
+      if (finished) return;
+      finished = true;
+      if (timer !== null) { unschedule(timer); timer = null; }
+      clearActive(container, handle);
+      if (render) Render.step(container, ep, index);
+      resolveDone();
+    }
+    function next(k) {
+      if (finished) return;
+      if (k >= plan.length) { end(true); return; }
+      timer = schedule(function () {
+        timer = null;
+        if (finished) return;
+        try {
+          plan[k].fn();
+        } catch (err) {
+          // A broken reveal must not stall playback: jump to the final state.
+          if (typeof console !== "undefined") console.error("Animate: reveal failed", err);
+          end(true);
+          return;
+        }
+        next(k + 1);
+      }, plan[k].ms);
+    }
+    next(0);
+    return {cancel: handle.cancel, done: done};
+  }
+
+  // Sum of the ms the animation of `index` schedules (same plan, detached container).
+  function stepDuration(ep, index, speed) {
+    var plan = prepare(document.createElement("div"), ep, index, speedOf(speed));
+    return plan.reduce(function (s, a) { return s + a.ms; }, 0);
+  }
+
+  // What autoplay does after `index` finished animating.
+  function autoplay(ep, index, speed) {
+    var flat = Nav.flatten(ep);
+    var i = Nav.clamp(ep, index);
+    if (!flat.length || i >= flat.length - 1) return {stop: true, delay: 0};
+    var e = flat[i];
+    var steps = ep.chapters[e.chapter].steps || [];
+    if (e.step === steps.length - 1) return {stop: true, delay: 0};  // also an empty chapter's card
+    if (e.step >= 0 && steps[e.step].pause) return {stop: true, delay: 0};
+    return {stop: false, delay: AUTOPLAY_MS / speedOf(speed)};
+  }
+
+  // Estimated length: step animations plus autoplay delays (none after a stop).
+  function episodeDuration(ep, speed) {
+    var flat = Nav.flatten(ep);
+    var chapters = (ep.chapters || []).map(function (ch) { return {id: ch.id, ms: 0}; });
+    var total = 0;
+    flat.forEach(function (e, i) {
+      var a = autoplay(ep, i, speed);
+      var ms = stepDuration(ep, i, speed) + (a.stop ? 0 : a.delay);
+      chapters[e.chapter].ms += ms;
+      total += ms;
+    });
+    return {total: total, chapters: chapters};
+  }
+
+  return {run: run, stop: stop, stepDuration: stepDuration, autoplay: autoplay, episodeDuration: episodeDuration,
+          CHAR_MS: CHAR_MS, LINE_MS: LINE_MS, NODE_MS: NODE_MS, FADE_MS: FADE_MS, AUTOPLAY_MS: AUTOPLAY_MS};
+})();
+
+</script>
+<script>
+// Presenter control. The logic is a pure reducer; the DOM layer at the end is thin.
+//
+// Control.init(episodes) -> state
+// Control.reduce(state, input) -> {state, outbox}   (never mutates `state`)
+//   inputs: {kind:"key", key, shift}         key = KeyboardEvent.key (←/PageUp, →/PageDown, space, b)
+//           {kind:"message", msg, now}       a message from the stage window; `now` is the
+//                                            arrival time (Date.now()), not the last tick
+//           {kind:"tick", now}               clock (ms); drives pings, lost and timers
+//           {kind:"select-episode", id}  {kind:"select-chapter", i}  {kind:"speed", value}
+//           {kind:"stage-opened", now}       the «Abrir escenario» / «Reabrir» click opened it
+//           {kind:"stage-closed"}            the DOM layer saw the stage window closed
+//   outbox: {to:"stage", msg}                content messages go only while the stage is
+//                                            live (opened, ready, not lost); pings go while
+//                                            it is opened, lost or not
+// Playback: space toggles `playing`. While playing, each done-animating for the current
+// index asks Animate.autoplay; if it does not stop, the control sends the stage
+// {type:"wait", delay, seq} and the STAGE times the delay (its window is visible, so its
+// timers are not throttled), then answers {type:"advance", seq}. The control advances
+// only if still playing and `seq` is unchanged (every show and every pause bumps it).
+// Liveness: every stage message counts. A ping goes every PING_MS; the stage is lost when
+// the oldest unanswered ping is LOST_MS old. A tick after a gap of LOST_MS or more (the
+// control's timers were throttled) only sends a fresh ping and judges on later ticks.
+// While lost the control keeps pinging; any stage message clears lost and resends the
+// current show.
+// Clock: it starts with the first move of the episode (→, space, ⇧ jumps, chapter pick)
+// and runs until another episode is picked, paused or not (narration counts): see
+// clockRuns. Each tick adds its time to the current chapter.
+var Control = (function () {
+  var PING_MS = 2000;
+  var LOST_MS = 5000;
+  var SPEEDS = [0.5, 1, 1.5, 2];
+
+  function assign(a, b) { return Object.assign({}, a, b); }
+  function none(s) { return {state: s, outbox: []}; }
+  function stageFile(series) { return "serie-" + series + ".html"; }
+  function findEpisode(eps, id) {
+    for (var i = 0; i < eps.length; i++) if (eps[i].id === id) return eps[i];
+    return null;
+  }
+  function episodeOf(s) { return findEpisode(s.episodes, s.episodeId); }
+  function lastIndex(ep) { return Math.max(Nav.flatten(ep).length - 1, 0); }
+  function zeros(ep) { return (ep.chapters || []).map(function () { return 0; }); }
+
+  function init(episodes) {
+    var eps = episodes || [];
+    var ep = eps[0] || {id: null, series: "cursor", chapters: []};
+    return {
+      episodes: eps, episodeId: ep.id, index: 0, speed: 1, playing: false, blackout: false,
+      seq: 0, stageFile: stageFile(ep.series), stageSeries: null,
+      needsOpen: true, stageLost: false, ready: false, stageIndex: null,
+      now: 0, lastPing: 0, lastHeard: 0, pingPendingSince: null, lastTick: null,
+      started: false, elapsed: 0, chapterMs: zeros(ep)
+    };
+  }
+
+  function isLive(s) { return !s.needsOpen && !s.stageLost && s.ready; }
+  function clockRuns(s) { return s.started; }
+  function toStage(s, msg) { return isLive(s) ? [{to: "stage", msg: msg}] : []; }
+  function showMsg(s, animate) {
+    return {type: "show", episode: s.episodeId, index: s.index, animate: animate, speed: s.speed};
+  }
+  // Everything a freshly loaded stage needs: blackout first, so nothing flashes.
+  function resend(s) {
+    return (s.blackout ? toStage(s, {type: "blackout", on: true}) : []).concat(toStage(s, showMsg(s, false)));
+  }
+  // Stop playback; bumping seq voids any wait the stage still has pending.
+  function pause(s) { return s.playing ? assign(s, {playing: false, seq: s.seq + 1}) : s; }
+
+  function go(s, index, animate, patch) {
+    var n = assign(s, assign({index: index, seq: s.seq + 1, started: true}, patch || {}));
+    return {state: n, outbox: toStage(n, showMsg(n, animate))};
+  }
+
+  function normalizeKey(key) { return Nav.keyAction(key); }
+
+  function onKey(s, key, shift) {
+    var ep = episodeOf(s);
+    if (!ep) return none(s);
+    var k = normalizeKey(key), last = lastIndex(ep), target;
+    if (k === "right" && shift) {
+      target = Nav.nextChapter(ep, s.index);
+      return target === s.index ? none(s) : go(s, target, false, {playing: false});
+    }
+    if (k === "left" && shift) {
+      target = Nav.prevChapter(ep, s.index);
+      return target === s.index ? none(s) : go(s, target, false, {playing: false});
+    }
+    if (k === "right") return s.index >= last ? none(s) : go(s, s.index + 1, true);
+    if (k === "left") return s.index <= 0 ? none(s) : go(s, s.index - 1, false, {playing: false});
+    if (k === "space") {
+      if (s.playing) {
+        var p = pause(s);
+        return {state: p, outbox: toStage(p, {type: "wait-cancel"})};
+      }
+      return s.index >= last ? none(s) : go(s, s.index + 1, true, {playing: true});
+    }
+    if (k === "b") {
+      var n = assign(s, {blackout: !s.blackout});
+      return {state: n, outbox: toStage(n, {type: "blackout", on: n.blackout})};
+    }
+    return none(s);
+  }
+
+  // Any message proves the stage is there: it clears lost and, if the stage was down
+  // (lost, or not ready yet), the current state is resent before the message is handled.
+  function onMessage(s, msg, now) {
+    if (!msg || typeof msg !== "object" || s.needsOpen) return none(s);
+    if (now === undefined) now = s.now;
+    var wasDown = s.stageLost || !s.ready;
+    var n = assign(s, {ready: true, stageLost: false, lastHeard: now, pingPendingSince: null});
+    var out = (wasDown || msg.type === "ready") ? resend(n) : [];
+    var r = handleMessage(n, msg);
+    return {state: r.state, outbox: out.concat(r.outbox)};
+  }
+
+  function handleMessage(s, msg) {
+    if (msg.type === "shown") return none(assign(s, {stageIndex: msg.index}));
+    if (msg.type === "key") return onKey(s, msg.key, msg.shift);
+    if (msg.type === "done-animating") {
+      if (!s.playing || msg.index !== s.index) return none(s);
+      var a = Animate.autoplay(episodeOf(s), s.index, s.speed);
+      if (a.stop) return none(pause(s));
+      return {state: s, outbox: toStage(s, {type: "wait", delay: a.delay, seq: s.seq})};
+    }
+    if (msg.type === "advance") {
+      var ep = episodeOf(s);
+      if (!s.playing || msg.seq !== s.seq || !ep) return none(s);
+      if (s.index >= lastIndex(ep)) return none(pause(s));
+      return go(s, s.index + 1, true);
+    }
+    return none(s);  // ready, pong: liveness only
+  }
+
+  function ping(s, now) {
+    var n = assign(s, {lastPing: now, pingPendingSince: s.pingPendingSince === null ? now : s.pingPendingSince});
+    return {state: n, outbox: [{to: "stage", msg: {type: "ping"}}]};
+  }
+
+  function onTick(s, now) {
+    var patch = {now: now, lastTick: now};
+    var gap = s.lastTick === null ? 0 : now - s.lastTick;
+    if (clockRuns(s) && gap > 0) {
+      var ch = Nav.position(episodeOf(s), s.index).chapter;
+      var ms = s.chapterMs.slice();
+      ms[ch] = (ms[ch] || 0) + gap;
+      patch.elapsed = s.elapsed + gap;
+      patch.chapterMs = ms;
+    }
+    var n = assign(s, patch);
+    if (n.needsOpen) return none(n);
+    // Our own timers were asleep: whatever is pending cannot be judged; ask again.
+    if (gap >= LOST_MS) return ping(assign(n, {pingPendingSince: null}), now);
+    if (!n.stageLost && n.pingPendingSince !== null && now - n.pingPendingSince >= LOST_MS) {
+      n = pause(assign(n, {stageLost: true}));
+    }
+    if (now - n.lastPing >= PING_MS) return ping(n, now);
+    return none(n);
+  }
+
+  function reduce(s, input) {
+    if (!input) return none(s);
+    var ep = episodeOf(s), n, target;
+    switch (input.kind) {
+      case "key": return onKey(s, input.key, input.shift);
+      case "message": return onMessage(s, input.msg, input.now);
+      case "tick": return onTick(s, input.now);
+      case "speed":
+        if (SPEEDS.indexOf(input.value) < 0) return none(s);
+        return none(assign(s, {speed: input.value}));
+      case "select-chapter":
+        if (!ep) return none(s);
+        target = -1;
+        Nav.flatten(ep).forEach(function (e, i) { if (target < 0 && e.chapter === input.i && e.step === -1) target = i; });
+        if (target < 0) return none(s);
+        return go(s, target, false, {playing: false});
+      case "select-episode":
+        var next = findEpisode(s.episodes, input.id);
+        if (!next || next.id === s.episodeId) return none(s);
+        var needsOpen = s.needsOpen || next.series !== s.stageSeries;
+        n = assign(s, {episodeId: next.id, stageFile: stageFile(next.series), needsOpen: needsOpen,
+                       ready: needsOpen ? false : s.ready, chapterMs: zeros(next), elapsed: 0});
+        return go(n, 0, false, {playing: false, started: false});
+      case "stage-opened":
+        var now = input.now === undefined ? s.now : input.now;
+        return none(assign(s, {needsOpen: false, stageLost: false, ready: false,
+                               stageSeries: ep ? ep.series : null, now: now,
+                               lastPing: now, lastHeard: now, pingPendingSince: null}));
+      case "stage-closed":
+        if (s.needsOpen || s.stageLost) return none(s);
+        return none(pause(assign(s, {stageLost: true})));
+    }
+    return none(s);
+  }
+
+  // ---- panels (pure) ----
+  function trim(text, max) {
+    text = String(text || "").replace(/\s+/g, " ").trim();
+    return text.length > max ? text.slice(0, max - 1) + "…" : text;
+  }
+  function stepLabel(st) {
+    if (!st) return "";
+    if (st.type === "ask") return trim(st.text, 80);
+    if (st.type === "term") return trim(st.cmd, 80) || "(prompt vacío)";
+    if (st.type === "tool") return trim(st.label, 80);
+    if (st.type === "approve") return trim(st.title, 80);
+    if (st.type === "page") return "Página · " + trim(st.title, 70);
+    if (st.type === "worked") return "Trabajó " + st.seconds + " s";
+    if (st.type === "say") {
+      var line = String(st.md || "").split("\n").filter(function (l) { return l.trim(); })[0] || "";
+      return trim(line.replace(/^#### |^- /, "").replace(/\*\*|`/g, ""), 80) || "(texto vacío)";
+    }
+    return st.type;
+  }
+  function upNext(ep, index) {
+    var flat = Nav.flatten(ep);
+    var i = Nav.clamp(ep, index);
+    if (i >= flat.length - 1) return "Fin del episodio";
+    var e = flat[i + 1];
+    var ch = ep.chapters[e.chapter];
+    if (e.step === -1) return "Placa · «" + ch.title + "»";
+    return stepLabel(ch.steps[e.step]);
+  }
+  function notes(ep, index) {
+    var e = Nav.flatten(ep)[Nav.clamp(ep, index)] || {chapter: 0, step: -1};
+    var ch = (ep.chapters || [])[e.chapter] || {};
+    var st = e.step >= 0 ? ch.steps[e.step] : null;
+    var skill = ep.skill || {};
+    return {notes: (st && st.notes) || "", source: st ? st.source : null,
+            commit: skill.commit || "", date: skill.date || "", faq: ch.faq || []};
+  }
+
+  // ======================= DOM layer (control.html only) =======================
+  function readEpisodes() {
+    var node = document.getElementById("episodes");
+    if (!node) return [];
+    try {
+      var data = JSON.parse(node.textContent);
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function clock(ms) {
+    var t = Math.round(ms / 1000);
+    var m = Math.floor(t / 60), sec = t % 60;
+    return m + ":" + (sec < 10 ? "0" : "") + sec;
+  }
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = String(text);
+    return n;
+  }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+  function $(id) { return document.getElementById(id); }
+
+  function boot() {
+    if (!$("ws-control")) return;
+    var state = init(readEpisodes());
+    var stageWin = null, durations = {}, previewKey = null, viewKey = null, chapterTimes = [];
+
+    function dispatch(input) {
+      var r = reduce(state, input);
+      state = r.state;
+      r.outbox.forEach(perform);
+      update();
+    }
+    function perform(o) {
+      if (o.to === "stage" && stageWin && !stageWin.closed) stageWin.postMessage(o.msg, "*");
+    }
+    // `closed` is the exact signal that the presenter closed the stage window.
+    function checkClosed() {
+      if (stageWin && stageWin.closed) dispatch({kind: "stage-closed"});
+    }
+    // Rebuild the panels only when what they show changes; ticks just refresh the times,
+    // so clicks and text selection in the panels survive.
+    function update() {
+      var k = [state.episodeId, state.index, state.playing, state.blackout, state.stageLost,
+               state.needsOpen, state.ready, state.speed].join("|");
+      if (k !== viewKey) { viewKey = k; render(); } else renderTimes();
+    }
+
+    // The only place that opens the stage window (also serves «Reabrir»).
+    function onOpenStageClick() {
+      var win = window.open(state.stageFile, "ws-stage");
+      if (!win) {
+        $("banner-text").textContent = "El navegador bloqueó la ventana: permití ventanas emergentes para este archivo.";
+        return;
+      }
+      stageWin = win;
+      dispatch({kind: "stage-opened", now: Date.now()});
+    }
+
+    function duration(ep) {
+      var k = ep.id + "@" + state.speed;
+      if (!durations[k]) durations[k] = Animate.episodeDuration(ep, state.speed);
+      return durations[k];
+    }
+
+    function renderSelectors(ep) {
+      var sel = $("episode-select");
+      if (!sel.options.length) {
+        var groups = {};
+        state.episodes.forEach(function (e) {
+          if (!groups[e.series]) {
+            groups[e.series] = document.createElement("optgroup");
+            groups[e.series].label = e.series === "claude-code" ? "Serie Claude Code" : "Serie Cursor";
+            sel.appendChild(groups[e.series]);
+          }
+          var o = el("option", null, e.order + " · " + e.title);
+          o.value = e.id;
+          groups[e.series].appendChild(o);
+        });
+      }
+      sel.value = state.episodeId;
+      var csel = $("chapter-select");
+      if (csel.getAttribute("data-ep") !== ep.id) {
+        clear(csel);
+        ep.chapters.forEach(function (ch, i) {
+          var o = el("option", null, (i + 1) + " · " + ch.title);
+          o.value = String(i);
+          csel.appendChild(o);
+        });
+        csel.setAttribute("data-ep", ep.id);
+      }
+      csel.value = String(Nav.position(ep, state.index).chapter);
+    }
+
+    function chapterTime(ep, i) {
+      var spent = state.chapterMs[i] || 0;
+      var when = "~" + clock(duration(ep).chapters[i].ms);
+      if (i === Nav.position(ep, state.index).chapter && state.started) return "en curso " + clock(spent) + " / " + when;
+      return spent > 0 ? clock(spent) + " / " + when : when;
+    }
+    function renderTimes() {
+      var ep = episodeOf(state);
+      if (!ep) return;
+      chapterTimes.forEach(function (small, i) { small.textContent = chapterTime(ep, i); });
+      $("clock").textContent = "⏱ " + clock(state.elapsed) + " en el episodio";
+    }
+
+    function renderChapters(ep, pos) {
+      var list = clear($("chapters"));
+      var est = duration(ep);
+      chapterTimes = [];
+      $("episode-label").textContent = "Episodio " + ep.order + " · " + ep.title;
+      ep.chapters.forEach(function (ch, i) {
+        var cls = "ch" + (i === pos.chapter ? " on" : i < pos.chapter ? " done" : "");
+        var row = el("div", cls, (i + 1) + " · " + ch.title);
+        var small = el("small", null, chapterTime(ep, i));
+        chapterTimes.push(small);
+        row.appendChild(small);
+        row.addEventListener("click", function () { dispatch({kind: "select-chapter", i: i}); });
+        list.appendChild(row);
+        if (i !== pos.chapter) return;
+        (ch.steps || []).forEach(function (st, j) {
+          list.appendChild(el("div", "stp" + (j === pos.step ? " on" : ""), stepLabel(st)));
+        });
+      });
+      $("estimate").textContent = "Estimado ~" + clock(est.total) + " a " + state.speed + "×";
+    }
+
+    function renderPreview(ep) {
+      var box = $("mini"), canvas = $("mini-canvas");
+      var k = ep.id + "#" + state.index;
+      if (previewKey !== k) { Render.step(canvas, ep, state.index); previewKey = k; }
+      canvas.style.transform = "scale(" + (box.clientWidth / 1600) + ")";
+      $("mini-black").hidden = !state.blackout;
+      var flat = Nav.flatten(ep);
+      var status = state.needsOpen ? "sin escenario" : state.stageLost ? "escenario perdido"
+        : "● en vivo · paso " + (state.index + 1) + " de " + flat.length;
+      $("live").textContent = status;
+      $("live").className = isLive(state) ? "live" : "off";
+      $("next").textContent = upNext(ep, state.index);
+    }
+
+    function renderNotes(ep) {
+      var n = notes(ep, state.index);
+      $("notes-text").textContent = n.notes || (n.source === null ? "Placa del capítulo." : "Sin notas para este paso.");
+      var src = $("notes-source");
+      src.textContent = n.source || "placa";
+      src.className = "pill src-" + (n.source || "card");
+      $("notes-skill").textContent = "Skill en " + (n.commit || "?") + " · " + (n.date || "?");
+      var faq = clear($("faq"));
+      if (!n.faq.length) faq.appendChild(el("div", "q", "Sin preguntas cargadas para este capítulo."));
+      n.faq.forEach(function (item) {
+        var q = el("div", "q");
+        q.appendChild(el("b", null, "«" + item.q + "»"));
+        q.appendChild(el("div", null, item.a));
+        faq.appendChild(q);
+      });
+    }
+
+    function renderBanner() {
+      var banner = $("banner");
+      banner.hidden = !(state.needsOpen || state.stageLost);
+      $("reopen-stage").hidden = !state.stageLost;
+      if (state.stageLost) $("banner-text").textContent = "El escenario se cerró";
+      else if (state.needsOpen) $("banner-text").textContent = "Abrí el escenario (" + state.stageFile + ") con «Abrir escenario».";
+    }
+
+    function render() {
+      var ep = episodeOf(state);
+      if (!ep) { $("banner").hidden = false; $("banner-text").textContent = "No hay episodios en este archivo."; return; }
+      var pos = Nav.position(ep, state.index);
+      renderSelectors(ep);
+      renderChapters(ep, pos);
+      renderPreview(ep);
+      renderNotes(ep);
+      renderBanner();
+      $("play").classList.toggle("on", state.playing);
+      $("blackout").classList.toggle("on", state.blackout);
+      renderTimes();
+      $("speed-select").value = String(state.speed);
+    }
+
+    $("open-stage").addEventListener("click", onOpenStageClick);
+    $("reopen-stage").addEventListener("click", onOpenStageClick);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-key]"), function (b) {
+      b.addEventListener("click", function () {
+        dispatch({kind: "key", key: b.getAttribute("data-key"), shift: b.hasAttribute("data-shift")});
+        b.blur();
+      });
+    });
+    $("episode-select").addEventListener("change", function (ev) {
+      dispatch({kind: "select-episode", id: ev.target.value});
+      ev.target.blur();
+    });
+    $("chapter-select").addEventListener("change", function (ev) {
+      dispatch({kind: "select-chapter", i: Number(ev.target.value)});
+      ev.target.blur();
+    });
+    $("speed-select").addEventListener("change", function (ev) {
+      dispatch({kind: "speed", value: Number(ev.target.value)});
+      ev.target.blur();
+    });
+    document.addEventListener("keydown", function (ev) {
+      var tag = ev.target && ev.target.tagName;
+      if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") return;
+      if (!normalizeKey(ev.key) || ev.repeat || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      ev.preventDefault();
+      dispatch({kind: "key", key: ev.key, shift: ev.shiftKey});
+    });
+    window.addEventListener("message", function (ev) {
+      if (!stageWin || ev.source !== stageWin) return;
+      dispatch({kind: "message", msg: ev.data, now: Date.now()});
+    });
+    window.addEventListener("resize", render);
+    document.addEventListener("visibilitychange", checkClosed);
+    setInterval(function () { checkClosed(); dispatch({kind: "tick", now: Date.now()}); }, 250);
+    dispatch({kind: "tick", now: Date.now()});
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+
+  return {init: init, reduce: reduce, notes: notes, upNext: upNext, stepLabel: stepLabel,
+          stageFile: stageFile, normalizeKey: normalizeKey,
+          SPEEDS: SPEEDS, PING_MS: PING_MS, LOST_MS: LOST_MS};
+})();
+
+</script>
+</body>
+</html>

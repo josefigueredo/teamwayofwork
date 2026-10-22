@@ -1,0 +1,578 @@
+{
+  "id": "local-board-skill",
+  "series": "cursor",
+  "order": 6,
+  "title": "local-board-skill",
+  "pitch": {
+    "ask": "Armame un board local para este proyecto",
+    "does": "Crea un board de épicas, historias y tareas en archivos Markdown, lo traza contra los commits de Git y lo sincroniza con Jira solo después de que revisás un plan guardado: solo se escribe con un plan guardado que revisaste (o con --apply, en la limpieza de links)."
+  },
+  "skill": {
+    "repo": "teamwayofwork",
+    "commit": "a0bc150",
+    "date": "2026-10-17"
+  },
+  "workspace": {
+    "repo": "mi-servicio",
+    "files": [
+      "api",
+      "web",
+      "docs",
+      "README.md"
+    ],
+    "chats": [
+      {
+        "title": "Revisar el alcance de devoluciones",
+        "age": "1d"
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "instalar",
+      "title": "Instalar",
+      "subtitle": "Una vez por máquina: clonar y enlazar",
+      "screen": "terminal",
+      "faq": [
+        {
+          "q": "¿Qué necesito instalado?",
+          "a": "Solo python3 y git. Los scripts de la skill usan nada más que la biblioteca estándar de Python, así que no hay nada que instalar con pip."
+        },
+        {
+          "q": "¿Por qué enlazar y no copiar?",
+          "a": "Porque así hay una sola fuente de verdad: tu clon. Cuando lo actualizás, la skill se actualiza sola. Una copia se queda vieja en silencio."
+        },
+        {
+          "q": "¿Puedo instalarla sin enlaces?",
+          "a": "Sí: con npx skills add, desde tu clon, y necesitás Node. Pero instala una copia: no se actualiza con git pull, hay que repetir el comando. Y si ya la habías enlazado, te cambia el enlace por la copia."
+        },
+        {
+          "q": "El clone dice «Permission denied», ¿qué hago?",
+          "a": "Falta acceso a este repo, que es de otra organización. Pedíselo al equipo dueño; la clave SSH del episodio 0 sirve en cuanto te lo den."
+        }
+      ],
+      "steps": [
+        {
+          "type": "term",
+          "cmd": "git clone <repo> ~/skills/teamwayofwork",
+          "out": [
+            "Cloning into '~/skills/teamwayofwork'..."
+          ],
+          "source": "inferido",
+          "cwd": "~",
+          "notes": "Primero bajamos el repo del equipo. Ojo: es un repo con varias skills adentro, y la que vamos a usar vive en la carpeta skills/local-board-skill. En <repo> va la dirección que te da tu equipo. Necesita red y acceso por SSH. La clave SSH sale del episodio 0, pero el acceso a este repo, que es de otra organización, se lo pedís al equipo dueño: si no te lo dieron, git clone responde «Permission denied» y no es un error tuyo. Paso inferido."
+        },
+        {
+          "type": "term",
+          "cmd": "mkdir -p ~/.agents/skills ~/.claude/skills",
+          "out": [],
+          "source": "real",
+          "cwd": "~",
+          "notes": "Creamos las dos carpetas donde los agentes buscan skills, por si no existen. Si ya existen, no pasa nada: el -p lo tolera."
+        },
+        {
+          "type": "term",
+          "cmd": "cd ~/skills/teamwayofwork && ln -s \"$PWD/skills/local-board-skill\" ~/.agents/skills/local-board-skill",
+          "out": [],
+          "source": "real",
+          "cwd": "~",
+          "notes": "El enlace para Cursor. Es un acceso directo a la carpeta de la skill dentro de tu clon, no una copia. Cursor busca en ~/.agents/skills."
+        },
+        {
+          "type": "term",
+          "cmd": "ln -s ../../.agents/skills/local-board-skill ~/.claude/skills/local-board-skill",
+          "out": [],
+          "source": "real",
+          "cwd": "~",
+          "notes": "El segundo enlace es para Claude Code, que busca en ~/.claude/skills. Si solo usás Cursor podrías saltearlo, pero conviene dejarlo: es gratis y la serie siguiente usa Claude Code. Apunta al primer enlace, así hay un solo camino hasta tu clon."
+        },
+        {
+          "type": "term",
+          "cmd": "head -4 ~/.claude/skills/local-board-skill/SKILL.md",
+          "out": [
+            "---",
+            "name: local-board-skill",
+            "description: \"Use when bootstrapping a local work board, analyzing commits since its last sync, relating specs and tickets, reconciling historical Git evidence, or preparing and applying an approved Jira sync.\"",
+            "compatibility: \"Requires python3 (standard library only) and git. Syncing with Jira also needs the JIRA_EMAIL and JIRA_API_TOKEN environment variables plus JIRA_BASE_URL or JIRA_CLOUD_ID.\""
+          ],
+          "source": "real",
+          "cwd": "~",
+          "notes": "Comprobamos leyendo la cabecera del SKILL.md a través del enlace: si se ve, el enlace anda. Fijate en la línea compatibility: pide python3 y git, y avisa que las credenciales de Jira hacen falta solo para sincronizar. Todo lo demás es local."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 -m unittest discover -s ~/.agents/skills/local-board-skill/tests -p 'test*.py' 2>&1 | grep -E '^(Ran |OK$|FAILED)'",
+          "out": [
+            "Ran 39 tests in 0.143s",
+            "OK"
+          ],
+          "source": "real",
+          "cwd": "~",
+          "notes": "La comprobación que trae la skill: sus tests. Corren sin red y sin Jira, con Jira falso adentro. Tiene que terminar en OK. El número de tests puede cambiar entre versiones: lo que importa es el OK. Si ves FAILED, frená acá y no sigas: lo que venga después se apoya en esto. Las credenciales de Jira no se piden ahora: el archivo donde van lo crea la skill junto con el board, y lo vemos en el caso principal.",
+          "pause": true
+        }
+      ]
+    },
+    {
+      "id": "caso-principal",
+      "title": "Caso principal",
+      "subtitle": "Armar el board, traer la evidencia y sincronizar con un plan",
+      "screen": "cursor-full",
+      "faq": [
+        {
+          "q": "¿El board reemplaza a Jira?",
+          "a": "No. El board vive en archivos Markdown junto al código y Jira es la última etapa: se llega ahí recién con un plan revisado."
+        },
+        {
+          "q": "¿Por qué cada hijo exige su padre?",
+          "a": "Porque la jerarquía es épica, historia, tarea y subtarea, y cada nivel cuelga del anterior. Si el padre no existe o es de otro tipo, el script no crea nada y te dice por qué."
+        },
+        {
+          "q": "¿Qué es la evidencia?",
+          "a": "Los commits, specs y PRs que sustentan cada tarea. Un grafo las relaciona, y los scripts rechazan nodos sueltos antes de que algo llegue a Jira."
+        },
+        {
+          "q": "¿Quién aprueba el plan?",
+          "a": "Vos, leyéndolo. No hay ventana ni candado: la aprobación es una práctica de la skill, guardar el plan, revisarlo y aplicar ese mismo plan."
+        }
+      ],
+      "steps": [
+        {
+          "type": "ask",
+          "text": "Armame un board local para este proyecto: una épica «Devoluciones de pedidos», una historia de cajero y una tarea que limite el descuento",
+          "source": "inferido",
+          "notes": "Una frase alcanza: no le explicamos el método ni los scripts, la skill se activa sola con «armame un board» o «preparame el plan de sync». Parado en el repo del proyecto, no en el de la skill."
+        },
+        {
+          "type": "tool",
+          "label": "Read · ~/.agents/skills/local-board-skill/SKILL.md",
+          "source": "inferido",
+          "notes": "Cursor carga la skill. Su SKILL.md está en inglés a propósito: lo lee el modelo, no vos. Define tres modos: armar desde cero, analizar desde el último sync y reconciliar la historia. Esto es el primero."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/init_board.py --board-dir board --name 'Servicio DEMO' --jira-project-key PLAT --jira-label mi-servicio --entity-id-prefix SRV",
+          "out": [
+            "Initialized ~/mi-servicio/board"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Crea la estructura: un Board.md con la configuración, una carpeta _meta con documentación y una carpeta sync con el grafo y el estado. Todavía no habla con Jira: el proyecto y la etiqueta solo se anotan en el índice."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py --board-dir board --type epic --summary 'Devoluciones de pedidos'",
+          "out": [
+            "Created SRVE01: SRVE01-devoluciones-de-pedidos/SRVE01.md"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Crea la épica. El identificador lo genera la skill desde el prefijo: SRV, más E de épica, más un número. El siguiente paso lo usa como padre."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py --board-dir board --type story --parent SRVE01 --summary 'Como cajero, devuelvo un pedido'",
+          "out": [
+            "Created SRVS01: SRVE01-devoluciones-de-pedidos/SRVS01-como-cajero-devuelvo-un-pedido/SRVS01.md"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "La historia cuelga de la épica con --parent. Cada hijo valida a su padre: una historia solo puede colgar de una épica."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py --board-dir board --type task --parent SRVS01 --summary 'Limitar el descuento al 100%' --repo mi-servicio",
+          "out": [
+            "Created SRVT01: SRVE01-devoluciones-de-pedidos/SRVS01-como-cajero-devuelvo-un-pedido/SRVT01-limitar-el-descuento-al-100/SRVT01.md"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "La tarea cuelga de la historia; con --repo anotamos dónde vive el trabajo. Hasta acá todo corrió sin red: no tocamos Jira."
+        },
+        {
+          "type": "term",
+          "cmd": "find board -type f | sort",
+          "out": [
+            "board/Board.md",
+            "board/SRVE01-devoluciones-de-pedidos/SRVE01.md",
+            "board/SRVE01-devoluciones-de-pedidos/SRVS01-como-cajero-devuelvo-un-pedido/SRVS01.md",
+            "board/SRVE01-devoluciones-de-pedidos/SRVS01-como-cajero-devuelvo-un-pedido/SRVT01-limitar-el-descuento-al-100/SRVT01.md",
+            "board/_meta/autores.md",
+            "board/_meta/convenciones.md",
+            "board/_meta/inventario-commits.md",
+            "board/_meta/mapeo-capacidades.md",
+            "board/_meta/spec-ticket-traceability.md",
+            "board/sync/.env",
+            "board/sync/.gitignore",
+            "board/sync/jira-config.json",
+            "board/sync/relations.json",
+            "board/sync/state.json"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "El resultado en disco: cada entidad es un archivo Markdown en una carpeta que respeta la jerarquía. Mirá sync/.env: ahí van las credenciales, y nace ignorado por git para que nadie lo suba por error."
+        },
+        {
+          "type": "say",
+          "md": "#### Board armado\n- **Épica SRVE01**, **historia SRVS01** y **tarea SRVT01**, cada una en su archivo y colgando de su padre.\n- Los archivos nacen con secciones «Pendiente de completar». Antes de sincronizar las redacto con evidencia y sin inventar requisitos: lo que no sé lo marco como supuesto.\n\nSi querés, sigo con la evidencia de Git.",
+          "source": "inferido",
+          "notes": "Redactar no lo hace ningún script. La skill pide objetivo, alcance y criterios de aceptación verificables, y prohíbe inventar requisitos: lo dudoso se marca como supuesto. Estos cuerpos terminan como descripción en Jira, vale la pena revisarlos."
+        },
+        {
+          "type": "ask",
+          "text": "Fijate qué commits hay desde el principio del repo y validá el grafo del board",
+          "source": "inferido",
+          "notes": "Otra pieza. Usamos el principio del repo como corte porque el board es nuevo; con uno que ya sincronizó, el corte sale del estado guardado, y eso lo vemos enseguida."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/inventory_git.py --workspace . --board-dir board --since 2000-01-01",
+          "out": [
+            "Wrote ~/mi-servicio/board/sync/git-inventory.json: repositories=1 commits=3"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Inventaría los commits desde el corte y los guarda en un JSON. Es evidencia, solo eso: decidir a qué tarea corresponde cada commit exige leer el diff, y eso lo hace el agente, no el script."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/render_git_inventory.py --board-dir board",
+          "out": [
+            "Wrote ~/mi-servicio/board/_meta/inventario-commits.md"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Genera el reporte legible en _meta. No lo edites a mano: se pisa."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/refresh_relations_catalog.py --board-dir board --workspace . --output board/sync/relations.json",
+          "out": [
+            "Refreshed assets=3 specs=0 relations=0"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Actualiza el catálogo dentro del grafo de relaciones, que es la única fuente estructurada de relaciones."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/validate_relations.py --board-dir board",
+          "out": [
+            "OK relations: assets=3 specs=0 commits=0 relations=0"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Valida el grafo. Todavía no hay commits relacionados, así que no hay nada que rechazar. Cuando los haya, cada uno necesita una relación con una tarea o una exclusión con su razón: un nodo suelto no pasa."
+        },
+        {
+          "type": "say",
+          "md": "Hay **3 commits** en el inventario y ninguno está relacionado con una tarea todavía. Leo cada diff, no solo el título, antes de decidir:\n- El de pedidos y totales va como evidencia de **SRVT01**: ahí vive el cálculo del descuento.\n- Los otros dos no pertenecen a ninguna tarea del board: los excluyo, cada uno con su razón.\n\nDespués valido el grafo de nuevo.",
+          "source": "inferido",
+          "notes": "La división del trabajo: el script reunió los hechos, el agente interpreta. Si un agrupamiento no se sostiene con la evidencia, la skill pide frenar y preguntarte."
+        },
+        {
+          "type": "tool",
+          "label": "Edit · board/sync/relations.json",
+          "source": "inferido",
+          "notes": "Acá se ve el trabajo del agente: escribe en el grafo una relación de evidencia y dos exclusiones con su razón."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · validate_relations.py",
+          "source": "inferido",
+          "notes": "Segunda validación, con las relaciones cargadas."
+        },
+        {
+          "type": "ask",
+          "text": "Preparame el plan de sincronización con Jira (no apliques nada)",
+          "source": "inferido",
+          "notes": "Pedimos el plan, no la aplicación. El «no apliques nada» es redundante, pero es buen hábito: deja clara la frontera."
+        },
+        {
+          "type": "term",
+          "cmd": "~/.agents/skills/local-board-skill/scripts/sync.sh board --save-plan board/sync/.review-plan.json",
+          "out": [
+            "ERROR: missing JIRA_EMAIL / JIRA_API_TOKEN",
+            "# exit 1"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Sin credenciales corta enseguida con un error claro y no escribe nada: revisa las variables antes de tocar la red. Con credenciales, este mismo comando consulta Jira, solo de lectura, y guarda el plan."
+        },
+        {
+          "type": "say",
+          "md": "Faltan las credenciales de Jira: **JIRA_EMAIL** y **JIRA_API_TOKEN**. Las cargás vos en `board/sync/.env`, con un editor. No me las pegues en el chat.",
+          "source": "inferido",
+          "notes": "El agente no pide el token: avisa y espera. El archivo ya existe porque lo creó init_board, y git lo ignora. Aunque quisieras pegar el token en el chat, no deberías."
+        },
+        {
+          "type": "term",
+          "cmd": "open -e board/sync/.env",
+          "out": [],
+          "source": "inferido",
+          "cwd": "~/mi-servicio",
+          "notes": "Esto lo hacés vos, en la terminal de Cursor: completás el correo, el token y la dirección de tu Jira, y guardás. Se ve tipeado por la persona porque no es un paso del agente.",
+          "in": "zsh",
+          "pause": true
+        },
+        {
+          "type": "ask",
+          "text": "Ya cargué las credenciales, seguí",
+          "source": "inferido",
+          "notes": "Una frase. El agente retoma desde donde frenó."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · sync.sh board --save-plan board/sync/.review-plan.json",
+          "source": "inferido",
+          "notes": "Ahora sí llega a Jira, de solo lectura: por cada entidad sin clave busca un issue con su marcador entre corchetes, para no duplicar. Guarda el plan con un checksum del plan y del grafo."
+        },
+        {
+          "type": "tool",
+          "label": "Read · board/sync/.review-plan.json",
+          "source": "inferido",
+          "notes": "El agente lee el plan que guardó para resumirlo. Vos podés abrir el mismo archivo."
+        },
+        {
+          "type": "say",
+          "md": "Plan guardado en `board/sync/.review-plan.json`:\n- **3 acciones `create`:** la épica, la historia y la tarea. Los padres se resuelven al aplicar.\n- **0 `adopt_jira`:** busqué `[SRVE01]`, `[SRVS01]` y `[SRVT01]` en el proyecto y no hay candidatos, así que nada se duplica.\n\nNo apliqué nada. Revisalo y decime si lo aplico.",
+          "source": "inferido",
+          "notes": "El momento clave del episodio. El plan es una lista de acciones: leela. Pueden ser create, adopt_jira, update_jira, update_local, link_remote o noop. Lo que te protege no es un candado: es que se aplica ese mismo plan guardado."
+        },
+        {
+          "type": "ask",
+          "text": "Aplicá el plan guardado",
+          "source": "inferido",
+          "notes": "La aprobación es esta frase. No hay ventana de macOS ni botón: es una práctica, no un bloqueo técnico. Por eso leer el plan importa tanto."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · sync.sh board --apply-plan board/sync/.review-plan.json",
+          "source": "inferido",
+          "notes": "Antes de escribir verifica el checksum del plan y del grafo; si algo cambió, se niega. Aplica en orden, guardando cada clave de Jira antes de crear al hijo. Inferido: escribe en Jira."
+        },
+        {
+          "type": "worked",
+          "seconds": 18,
+          "source": "inferido",
+          "notes": "Tiempo de relleno: en un board grande tarda más."
+        },
+        {
+          "type": "say",
+          "md": "#### Plan aplicado\n- **PLAT-101** (épica), **PLAT-102** (historia) y **PLAT-103** (tarea), con las claves ya guardadas en cada archivo del board.\n- Volví a correr `--save-plan` para verificar: trae **solo `noop`**, es decir, local y Jira coinciden.\n\nEl board y Jira dicen lo mismo.",
+          "source": "inferido",
+          "notes": "Verificación final: un segundo plan después de aplicar tiene que traer solo acciones noop. No usó ningún MCP de Jira ni la API directa: la skill lo prohíbe, el único camino es el plan guardado.",
+          "pause": true
+        }
+      ]
+    },
+    {
+      "id": "desde-el-ultimo-sync",
+      "title": "Otro caso: desde el último sync",
+      "subtitle": "El corte sale del estado guardado, nunca se adivina",
+      "screen": "cursor-agent",
+      "faq": [
+        {
+          "q": "¿Qué es el «último sync»?",
+          "a": "La fecha que la skill guarda en sync/state.json cada vez que aplicás un plan. De ahí sale desde cuándo mirar los commits nuevos."
+        },
+        {
+          "q": "¿Y si no hay fecha guardada?",
+          "a": "La skill dice que el corte no se adivina. Lo prudente, y lo que se espera del agente, es frenar y preguntarte desde cuándo mirar."
+        },
+        {
+          "q": "¿Crea una tarea por cada commit?",
+          "a": "No. Reutiliza la tarea que representa la misma capacidad y crea una nueva solo si el resultado no encaja en ninguna existente."
+        }
+      ],
+      "steps": [
+        {
+          "type": "ask",
+          "text": "Pasaron unos días: ¿qué commits hay desde el último sync?",
+          "source": "inferido",
+          "notes": "El segundo modo de la skill y el uso de todos los días: pasaron unos días desde que aplicamos el plan y querés saber qué cambió y a qué tarea pertenece."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 -c \"import json; print(json.load(open('board/sync/state.json'))['last_run'])\"",
+          "out": [
+            "2026-10-19T14:32:07.512340+00:00"
+          ],
+          "source": "inferido",
+          "cwd": "~/mi-servicio",
+          "notes": "El primer paso del agente es leer la fecha de corte del archivo de estado, y la skill es tajante: no se adivina. La fecha la dejó la aplicación del plan del caso anterior: cada --apply-plan la guarda. Inferido: la captura no aplicó ningún plan; la fecha es ilustrativa."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · inventory_git.py --since 2026-10-19T14:32:07+00:00",
+          "source": "inferido",
+          "notes": "Con el corte leído, el inventario mira solo lo posterior. Si no hay una fecha guardada, no se inventa: el agente la pide, que es la lectura prudente del «no adivinar» (inferencia, el SKILL.md no detalla ese caso)."
+        },
+        {
+          "type": "say",
+          "md": "El último sync fue el **2026-10-19**. Desde esa fecha no hay commits nuevos en `mi-servicio`: el inventario vuelve vacío y no hay nada que relacionar.\n\nCuando los haya, el camino es el de siempre:\n- Leo **cada diff**, no solo el título.\n- Reutilizo la tarea que ya representa la capacidad; solo creo una nueva si el resultado no encaja en ninguna.\n- Nuevos nodos y relaciones al grafo, validación y un plan nuevo para que lo revises.",
+          "source": "inferido",
+          "notes": "Con la fecha guardada el agente sigue solo.",
+          "pause": true
+        }
+      ]
+    },
+    {
+      "id": "limpiar-links",
+      "title": "Otro caso: limpiar links",
+      "subtitle": "Primero se lista lo que se borraría; borrar es otro pedido",
+      "screen": "cursor-agent",
+      "faq": [
+        {
+          "q": "¿Por qué hay links mal formados?",
+          "a": "Porque a veces se vinculó un commit con una URL del repositorio que termina en .git, que no abre la página del commit. La skill las deriva solo de remotes de git verificados, así que no las inventa."
+        },
+        {
+          "q": "¿Se puede deshacer el borrado?",
+          "a": "No desde acá: con --apply borra enseguida, sin confirmación. Por eso la protección es haber revisado antes la lista."
+        },
+        {
+          "q": "¿Necesita credenciales?",
+          "a": "Sí, incluso para listar: lee los links remotos de Jira. Sin ellas corta con el mismo error de faltantes, antes de tocar nada."
+        }
+      ],
+      "steps": [
+        {
+          "type": "ask",
+          "text": "Limpiá los links remotos con .git",
+          "source": "inferido",
+          "notes": "Este pedido tiene una trampa linda: dice «limpiá», pero el script, sin --apply, solo mira."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/purge_bad_remote_links.py --board-dir board --workers 12",
+          "out": [
+            "would delete PLAT-102 remote link 101: https://git.example.com/demo/repo.git/commit/abc123",
+            "Scanned 3 remote links across 3 issues; would delete 1 bad URLs",
+            "Dry run: nothing was changed. Re-run with --apply to delete these links."
+          ],
+          "source": "inferido",
+          "cwd": "~/mi-servicio",
+          "notes": "Sin --apply, el script solo lee y lista. Recorre los issues del board que tienen clave de Jira, mira sus links remotos y marca los que terminan en .git o lo contienen. Inferido: necesita credenciales y red, y los datos son ficticios."
+        },
+        {
+          "type": "say",
+          "md": "Encontré **1 link mal formado** de 3 que revisé, en **PLAT-102**: una URL de commit que contiene `.git/`.\n\n**No borré nada.** Con `--apply` borra enseguida y no se puede deshacer. Si la lista te parece bien, pedímelo.",
+          "source": "inferido",
+          "notes": "El agente se frena en la lista. El showcase de la skill indica correr primero el plan y borrar solo si se lo pedís. Leé la lista: es la única protección que hay antes del borrado."
+        },
+        {
+          "type": "ask",
+          "text": "Sí, borralo",
+          "source": "inferido",
+          "notes": "Un pedido explícito, después de ver la lista: eso habilita el --apply."
+        },
+        {
+          "type": "tool",
+          "label": "Ran · purge_bad_remote_links.py --apply",
+          "source": "inferido",
+          "notes": "Recién ahora aparece la bandera. Inferido: escribe en Jira."
+        },
+        {
+          "type": "say",
+          "md": "Borré **1 link** de PLAT-102. Para comprobarlo, corro de nuevo el modo sin `--apply`: no debería listar nada.",
+          "source": "inferido",
+          "notes": "Verificar sin la bandera es barato y cierra el caso.",
+          "pause": true
+        }
+      ]
+    },
+    {
+      "id": "si-algo-falla",
+      "title": "Si algo falla",
+      "subtitle": "Los tres tropiezos más comunes",
+      "screen": "terminal",
+      "faq": [
+        {
+          "q": "¿Una tarea sin padre se crea igual?",
+          "a": "No: el script se niega, no crea nada y dice qué falta. Primero se crea la épica y se usa su identificador."
+        },
+        {
+          "q": "El plan dice que está desactualizado, ¿qué hago?",
+          "a": "Regeneralo con --save-plan, revisalo de nuevo y aplicá ese. Un plan viejo nunca se aplica: cambió el grafo, las entidades o Jira."
+        },
+        {
+          "q": "La skill no aparece en el agente",
+          "a": "Abrí una sesión nueva: el agente lee las skills al arrancar. Y verificá que los enlaces apunten a tu clon."
+        },
+        {
+          "q": "¿Qué errores cortan antes de tocar Jira?",
+          "a": "Faltan JIRA_EMAIL y JIRA_API_TOKEN, falta la URL (JIRA_BASE_URL o JIRA_CLOUD_ID) o la URL no empieza con https."
+        }
+      ],
+      "steps": [
+        {
+          "type": "term",
+          "cmd": "readlink ~/.agents/skills/local-board-skill",
+          "out": [
+            "~/skills/teamwayofwork/skills/local-board-skill"
+          ],
+          "source": "real",
+          "cwd": "~",
+          "notes": "Primer tropiezo: la skill no aparece. Casi siempre es una sesión abierta antes de crear los enlaces, y se arregla abriendo una sesión nueva. Con readlink verificás que el enlace apunta a tu clon; si apunta a otro lado o no existe, el problema es del enlace."
+        },
+        {
+          "type": "term",
+          "cmd": "python3 ~/.agents/skills/local-board-skill/scripts/create_asset.py --board-dir board --type story --parent NOPE --summary 'x' 2>&1 | tail -1",
+          "out": [
+            "create_asset.py: error: story requiere un parent existente de tipo epic"
+          ],
+          "source": "real",
+          "cwd": "~/mi-servicio",
+          "notes": "Segundo: pedir una historia con un padre que no existe. No crea nada y explica por qué. Lo mismo pasa con un padre del tipo equivocado: una tarea no puede colgar de una épica."
+        },
+        {
+          "type": "term",
+          "cmd": "~/.agents/skills/local-board-skill/scripts/sync.sh board --apply-plan board/sync/.review-plan.json",
+          "out": [
+            "ERROR: approved plan is stale: relations graph changed; regenerate and reapprove it",
+            "# exit 2"
+          ],
+          "source": "inferido",
+          "cwd": "~/mi-servicio",
+          "notes": "Tercero, el más importante: el plan guardado ya no coincide con el grafo, porque algo cambió después de guardarlo. No aplica nada y pide regenerar y volver a aprobar. Es una protección buena, no un error a esquivar. Inferido: llega a este chequeo después de consultar Jira."
+        }
+      ]
+    },
+    {
+      "id": "cierre",
+      "title": "Cierre",
+      "subtitle": "Lo que te llevás",
+      "screen": "cursor-agent",
+      "faq": [
+        {
+          "q": "¿Cuándo la uso?",
+          "a": "Cuando querés llevar el trabajo de un proyecto en archivos junto al código, con la evidencia de Git atada a cada tarea, y sincronizarlo con Jira de forma controlada."
+        },
+        {
+          "q": "¿Puedo usarla sin Jira?",
+          "a": "Sí. Armar el board, inventariar commits y validar el grafo son locales. Jira solo entra al preparar y aplicar un plan."
+        },
+        {
+          "q": "¿Qué necesito para el próximo episodio?",
+          "a": "Lo mismo del episodio 0. Cada episodio empieza instalando su skill."
+        }
+      ],
+      "steps": [
+        {
+          "type": "ask",
+          "text": "¿Qué me llevo de esto?",
+          "source": "inferido",
+          "notes": "Cerrá con las tres ideas; no repitas el episodio."
+        },
+        {
+          "type": "say",
+          "md": "#### Lo que te llevás\n- **El board vive en archivos:** épicas, historias y tareas junto al código, cada una trazada a sus commits.\n- **Jira es la última etapa:** primero un plan guardado, que revisás; después se aplica ese mismo plan, y un plan viejo no se aplica.\n- **Escribir en Jira es explícito:** solo `--apply-plan` y la limpieza con `--apply`. Lo demás es local, y no hay atajo por un MCP de Jira.\n\n#### Próximo episodio: install-unified-ci\nCómo adoptar el CI unificado en un repo: evalúa el repo, genera el workflow canónico para su stack y poda los viejos.",
+          "source": "inferido",
+          "notes": "Las tres ideas son el producto: archivos, plan y escritura explícita. La aprobación es tuya y es una práctica, no un candado: leer el plan es el trabajo. Anticipá el próximo en una frase: pasamos de ordenar el trabajo a ordenar cómo se construye, con un CI único para todos los repos del equipo.",
+          "pause": true
+        }
+      ]
+    }
+  ]
+}
