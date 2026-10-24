@@ -39,6 +39,12 @@ If a finding turns out to be wrong, do **not** silently edit it. Prepend a `> **
 
 Group when findings share a file, or when one produces something another consumes (a config pointing at a file nothing generates is worse than no config).
 
+Every PR gets a **conventional-commit title** of at most 100 characters (commitlint's default header limit; a squash merge turns the title into the commit header) and the **labels** of the issues it closes:
+
+```bash
+gh pr create --title "fix(security): add OAuth state parameter" --label "security,testing" --body-file "$DIR/pr-01.md"
+```
+
 Every PR body starts with:
 
 ```markdown
