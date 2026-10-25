@@ -753,6 +753,81 @@ var Render = (function () {
     return add(el("div", "ws-dots"), el("i", "ws-dot ws-dot-r"), el("i", "ws-dot ws-dot-y"),
                el("i", "ws-dot ws-dot-g"));
   }
+  // ---- SGR colour codes in term output (a `color: true` step keeps them at capture) ----
+  // Each run between codes becomes a text node, inside a span with inline style when it has any.
+  // Handled: reset, bold, dim, italic, underline, inverse, 16/256/24-bit fore and background.
+  var SGR = /\x1b\[([0-9;]*)m/g;
+  var BASIC = ["#1d1f21", "#e06c75", "#98c379", "#e5c07b", "#61afef", "#c678dd", "#56b6c2", "#dcdfe4",
+               "#5c6370", "#ff7a85", "#b5e890", "#ffd68a", "#7cc5ff", "#de9bf0", "#7fd4df", "#ffffff"];
+  function xterm256(n) {
+    if (n < 16) return BASIC[n];
+    if (n >= 232) { var g = 8 + 10 * (n - 232); return "rgb(" + g + ", " + g + ", " + g + ")"; }
+    var c = n - 16, lv = [0, 95, 135, 175, 215, 255];
+    return "rgb(" + lv[Math.floor(c / 36)] + ", " + lv[Math.floor(c / 6) % 6] + ", " + lv[c % 6] + ")";
+  }
+  function sgrApply(state, params) {
+    var p = params === "" ? [0] : params.split(";").map(function (x) { return x === "" ? 0 : parseInt(x, 10); });
+    for (var i = 0; i < p.length; i++) {
+      var c = p[i];
+      if (c === 0) { state = {}; }
+      else if (c === 1) state.bold = true;
+      else if (c === 2) state.dim = true;
+      else if (c === 3) state.italic = true;
+      else if (c === 4) state.underline = true;
+      else if (c === 7) state.inverse = true;
+      else if (c === 22) { state.bold = false; state.dim = false; }
+      else if (c === 23) state.italic = false;
+      else if (c === 24) state.underline = false;
+      else if (c === 27) state.inverse = false;
+      else if (c >= 30 && c <= 37) state.fg = BASIC[c - 30];
+      else if (c >= 90 && c <= 97) state.fg = BASIC[c - 82];
+      else if (c === 39) state.fg = null;
+      else if (c >= 40 && c <= 47) state.bg = BASIC[c - 40];
+      else if (c >= 100 && c <= 107) state.bg = BASIC[c - 92];
+      else if (c === 49) state.bg = null;
+      else if (c === 38 || c === 48) {
+        var color = null;
+        if (p[i + 1] === 5) { color = xterm256(p[i + 2] || 0); i += 2; }
+        else if (p[i + 1] === 2) { color = "rgb(" + (p[i + 2] || 0) + ", " + (p[i + 3] || 0) + ", " + (p[i + 4] || 0) + ")"; i += 4; }
+        if (c === 38) state.fg = color; else state.bg = color;
+      }
+    }
+    return state;
+  }
+  function sgrRun(parent, text, state) {
+    if (!text) return;
+    var fg = state.inverse ? (state.bg || "var(--ws-z-bg, #1e2127)") : state.fg;
+    var bg = state.inverse ? (state.fg || "var(--ws-z-out, #dcdfe4)") : state.bg;
+    if (!fg && !bg && !state.bold && !state.dim && !state.italic && !state.underline) {
+      parent.appendChild(document.createTextNode(text));
+      return;
+    }
+    var span = document.createElement("span");
+    if (fg) span.style.color = fg;
+    if (bg) span.style.backgroundColor = bg;
+    if (state.bold) span.style.fontWeight = "700";
+    if (state.dim) span.style.opacity = "0.6";
+    if (state.italic) span.style.fontStyle = "italic";
+    if (state.underline) span.style.textDecoration = "underline";
+    span.textContent = text;
+    parent.appendChild(span);
+  }
+  // Append one output line to `parent`: a single text node when it has no codes.
+  function outText(parent, line) {
+    line = String(line);
+    if (line.indexOf("\x1b[") < 0) { parent.appendChild(document.createTextNode(line)); return parent; }
+    var state = {}, last = 0, m;
+    SGR.lastIndex = 0;
+    while ((m = SGR.exec(line))) {
+      sgrRun(parent, line.slice(last, m.index), state);
+      state = sgrApply(Object.assign({}, state), m[1]);
+      last = SGR.lastIndex;
+    }
+    sgrRun(parent, line.slice(last), state);
+    return parent;
+  }
+  function outLine(o) { return anim(outText(el("div", "ws-out"), o), "line"); }
+
   // A bottom-anchored area: short content sits on top, long content shows its newest part.
   function scroller(cls) {
     var outer = el("div", "ws-scroll " + cls);
@@ -903,7 +978,7 @@ var Render = (function () {
   function shellStep(st, j, cwd, repo) {
     var n = stepNode("div", "ws-shell-step", j);
     add(n, promptLine(cwd, repo), cmdLine(st.cmd));
-    (st.out || []).forEach(function (o) { n.appendChild(anim(el("div", "ws-out", o), "line")); });
+    (st.out || []).forEach(function (o) { n.appendChild(outLine(o)); });
     return n;
   }
   // The tool's own approval window: its title bar, the page its code renders (no script, so sandbox="") and the
@@ -1099,7 +1174,7 @@ var Render = (function () {
         n = stepNode("div", "ws-ran", j);
         n.appendChild(anim(el("div", "ws-tool", "▸ Ran · " + st.cmd), "node"));
         var out = el("div", "ws-ran-out");
-        (st.out || []).forEach(function (o) { out.appendChild(anim(el("div", "ws-out", o), "line")); });
+        (st.out || []).forEach(function (o) { out.appendChild(outLine(o)); });
         if (out.firstChild) n.appendChild(out);
         m.flow.appendChild(n);
       } else if (st.type === "approve") {
@@ -1175,13 +1250,13 @@ var Render = (function () {
         n = stepNode("div", "ws-cc-block ws-cc-bang", j);
         n.appendChild(add(ccLine("! ", "ws-cc-bang-cmd"), anim(el("span", null, st.cmd), "type")));
         (st.out || []).forEach(function (o, k) {
-          n.appendChild(anim(add(ccLine(k === 0 ? "⎿ " : "", "ws-cc-out"), document.createTextNode(o)), "line"));
+          n.appendChild(anim(outText(ccLine(k === 0 ? "⎿ " : "", "ws-cc-out"), o), "line"));
         });
       } else if (st.type === "term") {
         n = stepNode("div", "ws-cc-block", j);
         n.appendChild(anim(add(ccLine("⏺ ", "ws-cc-tool"), document.createTextNode("Bash(" + st.cmd + ")")), "node"));
         (st.out || []).forEach(function (o, k) {
-          n.appendChild(anim(add(ccLine(k === 0 ? "⎿ " : "", "ws-cc-out"), document.createTextNode(o)), "line"));
+          n.appendChild(anim(outText(ccLine(k === 0 ? "⎿ " : "", "ws-cc-out"), o), "line"));
         });
       } else if (st.type === "tool") {
         n = add(stepNode("div", "ws-cc-line ws-cc-tool", j, "node"), el("span", "ws-cc-g", "⏺ "), document.createTextNode(st.label));
@@ -1435,6 +1510,10 @@ var Animate = (function () {
 //   outbox: {to:"stage", msg}                content messages go only while the stage is
 //                                            live (opened, ready, not lost); pings go while
 //                                            it is opened, lost or not
+// Finishing first: → while the stage still animates the current step (no done-animating for it yet)
+// shows that same step finished instead of moving on; the next → advances. Space there finishes it
+// too and starts playing from it. A resend shows the step
+// finished too, so a stage that was down or reloaded never holds → back.
 // Playback: space toggles `playing`. While playing, each done-animating for the current
 // index asks Animate.autoplay; if it does not stop, the control sends the stage
 // {type:"wait", delay, seq} and the STAGE times the delay (its window is visible, so its
@@ -1468,7 +1547,7 @@ var Control = (function () {
     var eps = episodes || [];
     var ep = eps[0] || {id: null, series: "cursor", chapters: []};
     return {
-      episodes: eps, episodeId: ep.id, index: 0, speed: 1, playing: false, blackout: false,
+      episodes: eps, episodeId: ep.id, index: 0, speed: 1, playing: false, blackout: false, animating: false,
       seq: 0, stageFile: stageFile(ep.series), stageSeries: null,
       needsOpen: true, stageLost: false, ready: false, stageIndex: null,
       now: 0, lastPing: 0, lastHeard: 0, pingPendingSince: null, lastTick: null,
@@ -1491,6 +1570,7 @@ var Control = (function () {
 
   function go(s, index, animate, patch) {
     var n = assign(s, assign({index: index, seq: s.seq + 1, started: true}, patch || {}));
+    n = assign(n, {animating: !!animate && isLive(n)});
     return {state: n, outbox: toStage(n, showMsg(n, animate))};
   }
 
@@ -1508,6 +1588,7 @@ var Control = (function () {
       target = Nav.prevChapter(ep, s.index);
       return target === s.index ? none(s) : go(s, target, false, {playing: false});
     }
+    if (k === "right" && s.animating && isLive(s)) return go(s, s.index, false);
     if (k === "right") return s.index >= last ? none(s) : go(s, s.index + 1, true);
     if (k === "left") return s.index <= 0 ? none(s) : go(s, s.index - 1, false, {playing: false});
     if (k === "space") {
@@ -1515,6 +1596,7 @@ var Control = (function () {
         var p = pause(s);
         return {state: p, outbox: toStage(p, {type: "wait-cancel"})};
       }
+      if (s.animating && isLive(s)) return go(s, s.index, false, {playing: true});
       return s.index >= last ? none(s) : go(s, s.index + 1, true, {playing: true});
     }
     if (k === "b") {
@@ -1532,6 +1614,7 @@ var Control = (function () {
     var wasDown = s.stageLost || !s.ready;
     var n = assign(s, {ready: true, stageLost: false, lastHeard: now, pingPendingSince: null});
     var out = (wasDown || msg.type === "ready") ? resend(n) : [];
+    if (out.length) n = assign(n, {animating: false});
     var r = handleMessage(n, msg);
     return {state: r.state, outbox: out.concat(r.outbox)};
   }
@@ -1540,6 +1623,7 @@ var Control = (function () {
     if (msg.type === "shown") return none(assign(s, {stageIndex: msg.index}));
     if (msg.type === "key") return onKey(s, msg.key, msg.shift);
     if (msg.type === "done-animating") {
+      if (msg.index === s.index && s.animating) s = assign(s, {animating: false});
       if (!s.playing || msg.index !== s.index) return none(s);
       var a = Animate.autoplay(episodeOf(s), s.index, s.speed);
       if (a.stop) return none(pause(s));
