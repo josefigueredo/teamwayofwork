@@ -25,3 +25,6 @@
 [submodule "harness/cursor-budget"]
 	path = harness/cursor-budget
 	url = git@github.com:josefigueredo/cursor-budget.git
+[submodule "harness/inherited-audit"]
+	path = harness/inherited-audit
+	url = git@github.com:josefigueredo/inherited-audit.git
