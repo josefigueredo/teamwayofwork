@@ -22,3 +22,6 @@
 [submodule "harness/api-contract-check"]
 	path = harness/api-contract-check
 	url = git@github.com:josefigueredo/api-contract-check.git
+[submodule "harness/cursor-budget"]
+	path = harness/cursor-budget
+	url = git@github.com:josefigueredo/cursor-budget.git
